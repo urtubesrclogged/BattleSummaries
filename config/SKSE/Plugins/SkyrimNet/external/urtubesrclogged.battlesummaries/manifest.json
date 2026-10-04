@@ -1,0 +1,28 @@
+{
+  "id": "urtubesrclogged.battlesummaries",
+  "type": "bundle",
+  "title": "Battle Summaries",
+  "tagline": "After a fight, NPCs know what really happened: who fell, who nearly died, and who saved whom.",
+  "description": "The SkyrimNet content of the Battle Summaries mod. It needs BattleSummaries.dll from the same mod and does nothing without it.\n\nSkyrimNet keeps raw hit, spell and combat events out of dialogue, so after a fight NPCs improvise what happened. Battle Summaries records each battle near the player and gives every NPC a short, factual summary of it from their own point of view: who fought, who died and who killed them, how badly each was hurt, who was struck down or came close to death, who saved whom, and which spells, poisons and protections were put on them and by whom. One remembered event per battle keeps it in memory afterwards.\n\nCONTENTS\nprompts/submodules/user_final_instructions/0210_battle_summary.prompt - the summary, rendered into the speaker's own prompt. It adds a new block and replaces no SkyrimNet prompt.\n\nThe battle_summary decorator and the remembered battle events come from BattleSummaries.dll and BattleSummaries_SkyrimNet.pex.\n\nLICENSE\nThis content: SkyrimNet Plugin License 1.0. The mod's code: MIT.",
+  "author": "urtubesrclogged",
+  "tags": [
+    "combat",
+    "battle",
+    "followers",
+    "awareness",
+    "memory"
+  ],
+  "nsfw": false,
+  "icon": "swords",
+  "requirements": [
+    "Battle Summaries (the mod this content ships with: BattleSummaries.dll)",
+    "SKSE",
+    "Address Library for SKSE Plugins (VR: VR Address Library for SKSEVR)"
+  ],
+  "languages": [
+    "en"
+  ],
+  "version": "1.0.0",
+  "changelog": "First public release.",
+  "min_skyrimnet_version": "0.25.0"
+}

@@ -1,0 +1,16 @@
+# this machine's paths
+local.env
+
+# build output
+build/
+src/plugin/build/
+release/
+__pycache__/
+
+# Bethesda's file: needed to compile the scripts, not ours to publish
+tools/papyrus-flags/
+
+# local rollback copies and working notes
+snapshots/
+notes/
+build_log.txt

@@ -1,0 +1,3 @@
+# keep line endings as authored: bash scripts must stay LF
+* -text
+*.sh text eol=lf

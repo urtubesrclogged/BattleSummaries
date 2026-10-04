@@ -1,0 +1,32 @@
+{% if render_mode == "full" or render_mode == "thoughts" or render_mode == "transform" %}
+{# Battle Summaries: what the speaker knows about the battle underway or just fought, from BattleSummaries.dll (battle_summary).
+   SkyrimNet keeps raw hit, spell and combat events out of the dialogue history; this is the summary that stands in
+   for them. It renders into the speaker's own prompt only: the render_mode guard above must stay on line 1, and a
+   mod decorator cannot be evaluated for an NPC who is neither speaker nor target.
+   The lines themselves are written by the DLL from what it recorded (BattleSummaries.ini tunes them); the framing and
+   the rule at the end are yours to edit here. #}
+{% set battleSummary = battle_summary(npc.UUID) %}
+{% if battleSummary.show %}
+{% if battleSummary.ongoing %}
+**THE BATTLE UNDERWAY (what has happened so far):**
+{% else %}
+**THE BATTLE FOUGHT {{ upper(battleSummary.age) }} (what actually happened):**
+{% endif %}
+{% for line in battleSummary.general %}
+- {{ line }}
+{% endfor %}
+{% if length(battleSummary.personal) > 0 %}
+What happened to {{ battleSummary.name }} in it:
+{% for line in battleSummary.personal %}
+- {{ line }}
+{% endfor %}
+{% endif %}
+{% if length(battleSummary.others) > 0 %}
+{% if battleSummary.participant %}Those who fought beside {{ battleSummary.name }}:{% else %}{{ battleSummary.name }} did not fight, but saw it. Those who fought:{% endif %}
+{% for line in battleSummary.others %}
+- {{ line }}
+{% endfor %}
+{% endif %}
+This is the true account of the battle, and {{ battleSummary.name }} remembers it this way. {{ battleSummary.name }} may feel anything about it that fits their character (pride, shame, gratitude, resentment, bravado), but must not deny or reverse what happened, claim kills or deeds that are not listed, or play down how close to death anyone came or who saved whom. Do not recite this account or its wording; let it shape what is said, and only when the battle is relevant.
+{% endif %}
+{% endif %}

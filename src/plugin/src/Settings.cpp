@@ -1,0 +1,55 @@
+#include "Settings.h"
+
+#include <SimpleIni.h>
+
+namespace BSM::Settings
+{
+	namespace
+	{
+		Data g_data;
+	}
+
+	const Data& Get() { return g_data; }
+
+	void SetVerbose(bool a_on)
+	{
+		g_data.verbose = a_on;
+		spdlog::set_level(a_on ? spdlog::level::debug : spdlog::level::info);
+		spdlog::flush_on(a_on ? spdlog::level::debug : spdlog::level::info);
+	}
+
+	void Load()
+	{
+		Data      d;
+		CSimpleIniA ini;
+		ini.SetUnicode();
+		const auto rc = ini.LoadFile(L"Data/SKSE/Plugins/BattleSummaries.ini");
+		if (rc < 0) {
+			SKSE::log::warn("BattleSummaries.ini not found; using defaults");
+		} else {
+			d.enabled = ini.GetBoolValue("General", "bEnabled", d.enabled);
+			d.nearDeathPct = static_cast<float>(ini.GetDoubleValue("General", "fNearDeathHealthShare", d.nearDeathPct));
+			d.endGraceSeconds = static_cast<float>(ini.GetDoubleValue("General", "fEndGraceSeconds", d.endGraceSeconds));
+			d.mergeGapSeconds = static_cast<float>(ini.GetDoubleValue("General", "fMergeGapSeconds", d.mergeGapSeconds));
+			d.range = static_cast<float>(ini.GetDoubleValue("General", "fTrackingRange", d.range));
+			d.witnessRange = static_cast<float>(ini.GetDoubleValue("General", "fWitnessRange", d.witnessRange));
+
+			d.summaryGameHours = static_cast<float>(ini.GetDoubleValue("Summary", "fSummaryGameHours", d.summaryGameHours));
+			d.showNumbers = ini.GetBoolValue("Summary", "bShowNumbers", d.showNumbers);
+			d.maxOthers = static_cast<int>(ini.GetLongValue("Summary", "iMaxCompanionLines", d.maxOthers));
+			d.maxEffects = static_cast<int>(ini.GetLongValue("Summary", "iMaxEffectsPerList", d.maxEffects));
+
+			d.rememberEvent = ini.GetBoolValue("Memory", "bRememberBattles", d.rememberEvent);
+			d.minEnemies = static_cast<int>(ini.GetLongValue("Memory", "iMinEnemies", d.minEnemies));
+			d.minSeconds = static_cast<float>(ini.GetDoubleValue("Memory", "fMinSeconds", d.minSeconds));
+
+			d.verbose = ini.GetBoolValue("Debug", "bVerboseLog", d.verbose);
+		}
+		d.nearDeathPct = std::clamp(d.nearDeathPct, 0.01f, 0.9f);
+		d.endGraceSeconds = std::clamp(d.endGraceSeconds, 1.0f, 120.0f);
+		g_data = d;
+		SetVerbose(d.verbose);
+		SKSE::log::info("Settings: enabled {}, near death below {:.0f}%, end grace {}s, merge gap {}s, summary for {} game hours, numbers {}, remember {}",
+			d.enabled, d.nearDeathPct * 100.0f, d.endGraceSeconds, d.mergeGapSeconds, d.summaryGameHours, d.showNumbers, d.rememberEvent);
+	}
+}
