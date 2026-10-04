@@ -1,10 +1,10 @@
 # Battle Summaries for SkyrimNet
 
-When given full event context for attacks, spells, and more which is extremely heavy on context, a lot of dialog models
- results in  undesired behavior so a lot of players just turn it off (the default). Without the context, after a fight,
- SkyrimNet NPCs improvise what happened: the follower you dragged back from bleedout tells you that you
-were sloppy and that she never needed your help. SkyrimNet keeps raw hit, spell and combat events out of the dialogue
-history (for good reason: there are hundreds of them per fight), so the dialogue model has nothing to go on.
+SkyrimNet can give the dialogue model the full event context for a fight: every attack, every spell and more. That
+is extremely heavy on context, and many dialogue models behave badly with it, so a lot of players leave it turned off
+(the default). Without that context, SkyrimNet NPCs improvise what happened after a fight: the follower you dragged
+back from bleedout tells you that you were sloppy and that she never needed your help. There are hundreds of raw
+events per fight, and with them left out the dialogue model has nothing to go on.
 
 Battle Summaries records each battle near the player and gives every NPC a short, factual account of it in place of
 those raw events, from that NPC's own point of view:
