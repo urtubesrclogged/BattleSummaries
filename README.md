@@ -1,6 +1,8 @@
 # Battle Summaries for SkyrimNet
 
-After a fight, SkyrimNet NPCs improvise what happened: the follower you dragged back from bleedout tells you that you
+When given full event context for attacks, spells, and more which is extremely heavy on context, a lot of dialog models
+ results in  undesired behavior so a lot of players just turn it off (the default). Without the context, after a fight,
+ SkyrimNet NPCs improvise what happened: the follower you dragged back from bleedout tells you that you
 were sloppy and that she never needed your help. SkyrimNet keeps raw hit, spell and combat events out of the dialogue
 history (for good reason: there are hundreds of them per fight), so the dialogue model has nothing to go on.
 
