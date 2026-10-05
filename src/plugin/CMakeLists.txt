@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(BattleSummaries VERSION 1.0.1 LANGUAGES CXX)  # the mod's version: the DLL reports it, the SkyrimNet manifest repeats it
+project(BattleSummaries VERSION 1.0.2 LANGUAGES CXX)  # the mod's version: the DLL reports it, the SkyrimNet manifest repeats it
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

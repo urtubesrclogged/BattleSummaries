@@ -1,5 +1,5 @@
 {
-  "id": "urtubesrclogged.battlesummaries",
+  "id": "urtubesrclogged.battle-summaries",
   "type": "bundle",
   "title": "Battle Summaries",
   "tagline": "After a fight, NPCs know what really happened: who fell, who nearly died, and who saved whom.",
@@ -22,7 +22,7 @@
   "languages": [
     "en"
   ],
-  "version": "1.0.1",
-  "changelog": "Fixed a crash to desktop when the player tried to use furniture someone else was sitting on. Wildlife fighting each other near a battle is no longer listed among the enemies, and a fighter who went in already close to death is described that way.",
+  "version": "1.0.2",
+  "changelog": "The mod's SkyrimNet content now carries the same id as its page on the plugin hub (urtubesrclogged.battle-summaries). When updating, replace the old version rather than merging into it, so the earlier content folder does not stay behind.",
   "min_skyrimnet_version": "0.25.0"
 }

@@ -5,7 +5,7 @@ Battle Summaries is licensed in two parts.
    BattleSummaries.ini and the build scripts.
 
 2. THE SKYRIMNET CONTENT - SkyrimNet Plugin License, Version 1.0 (see LICENSE-CONTENT.md).
-   Everything under SKSE/Plugins/SkyrimNet/external/urtubesrclogged.battlesummaries/: the manifest and the prompts.
+   Everything under SKSE/Plugins/SkyrimNet/external/urtubesrclogged.battle-summaries/: the manifest and the prompts.
 
 The script headers under src/papyrus/headers are compile-time declarations of scripts belonging to Bethesda and to
 SkyrimNet; they are covered by neither part (see THIRD_PARTY_NOTICES.md).

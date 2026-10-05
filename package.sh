@@ -12,7 +12,7 @@ python - "$R" "$R/release/Battle Summaries $V.zip" "$V" <<'PY'
 import glob, json, os, sys, zipfile
 root, out, ver = sys.argv[1], sys.argv[2], sys.argv[3]
 j = lambda *p: os.path.join(root, *p)
-layer = "urtubesrclogged.battlesummaries"
+layer = "urtubesrclogged.battle-summaries"
 dll = j("src", "plugin", "build", "BattleSummaries.dll")
 if not os.path.exists(dll):
     sys.exit("no DLL: run build.ps1 first")

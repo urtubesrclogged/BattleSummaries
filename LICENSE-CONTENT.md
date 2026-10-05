@@ -9,7 +9,7 @@ https://github.com/MinLL/SkyrimNet-Plugins/blob/main/LICENSE.md
 
 ## What it covers
 
-Everything in the mod's SkyrimNet layer, `SKSE/Plugins/SkyrimNet/external/urtubesrclogged.battlesummaries/`:
+Everything in the mod's SkyrimNet layer, `SKSE/Plugins/SkyrimNet/external/urtubesrclogged.battle-summaries/`:
 
 - `manifest.json`
 - `prompts/submodules/user_final_instructions/0210_battle_summary.prompt`

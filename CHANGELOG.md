@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2
+
+- The mod's SkyrimNet content now has the same id as its page on the SkyrimNet plugin hub
+  (`urtubesrclogged.battle-summaries`; it was `urtubesrclogged.battlesummaries`). Nothing changes in game.
+- **When updating, replace the old version; do not merge into it.** A merge leaves the earlier content folder
+  (`SKSE/Plugins/SkyrimNet/external/urtubesrclogged.battlesummaries`) beside the new one, and every summary would
+  then be given to NPCs twice. If that happened, delete the old folder.
+
 ## 1.0.1
 
 - Fixed a crash to desktop when the player tried to use furniture that someone else was already sitting on. The

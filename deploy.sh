@@ -24,7 +24,8 @@ for exe in "${GAME_EXE:-SkyrimSE.exe}" SkyrimSE.exe SkyrimVR.exe; do
 		exit 1
 	fi
 done
-ID=urtubesrclogged.battlesummaries
+ID=urtubesrclogged.battle-summaries
+OLD_ID=urtubesrclogged.battlesummaries   # the layer's id before 1.0.2
 for M in "${TARGETS[@]}"; do
 	[ -d "$(dirname "$M")" ] || { echo "skipped (no such mods folder): $M" >&2; continue; }
 	mkdir -p "$M/SKSE/Plugins" "$M/Scripts" "$M/Source/Scripts"
@@ -34,7 +35,7 @@ for M in "${TARGETS[@]}"; do
 	cp "$R"/src/papyrus/BattleSummaries_*.psc           "$M/Source/Scripts/"
 	# SkyrimNet 0.25+ content: an EXTERNAL layer, registered by SkyrimNet at start-up (docs/modding/CONTENT_ROOTS.md).
 	SN="$M/SKSE/Plugins/SkyrimNet/external"
-	rm -rf "$SN/$ID" && mkdir -p "$SN" && cp -r "$R/config/SKSE/Plugins/SkyrimNet/external/$ID" "$SN/"
+	rm -rf "$SN/$ID" "$SN/$OLD_ID" && mkdir -p "$SN" && cp -r "$R/config/SKSE/Plugins/SkyrimNet/external/$ID" "$SN/"
 	[ -f "$M/meta.ini" ] || printf '[General]\nmodid=0\nnotes=Battle Summaries for SkyrimNet. Needs SkyrimNet beta 25+ and Address Library.\n' > "$M/meta.ini"   # MO2 bookkeeping only
 	echo "deployed to $M ($(find "$M" -type f | wc -l) files, DLL $(md5sum < "$M/SKSE/Plugins/BattleSummaries.dll" | cut -c1-8))"
 done
