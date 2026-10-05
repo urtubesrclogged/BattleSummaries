@@ -30,8 +30,8 @@ happened or claim deeds that are not theirs.
 One DLL for Skyrim SE, AE and VR. No plugin (.esp) and nothing stored in the save, so it can be added or removed at
 any time.
 
-Developed and tested on Skyrim VR. SE and AE are built from the same code but have not been tested yet: reports are
-welcome.
+Developed on Skyrim VR and also run on Skyrim SE 1.5.97. AE (1.6) is built from the same code but has not been tested
+yet: reports are welcome.
 
 ## Installing
 

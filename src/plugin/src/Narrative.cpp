@@ -270,6 +270,8 @@ namespace BSM
 				out.push_back(std::format("{} was killed by {}.", n, CreditName(a_b, a_p.killer)));
 			} else if (const auto brink = Brink(a_b, a_p); !brink.empty()) {
 				out.push_back(std::format("{} {}.", n, brink));
+			} else if (a_p.startHealthPct < a_b.nearDeathPct) {
+				out.push_back(std::format("{} went into this fight already close to death from earlier wounds, and came through it without being hurt much further.", n));
 			} else if (a_p.minHealthPct < 0.4f) {
 				out.push_back(std::format("{} was hurt badly at the worst of it, but was never at death's door.", n));
 			} else {
@@ -328,6 +330,8 @@ namespace BSM
 				bits.push_back(brink);
 				const auto r = FindRescue(a_b, a_p, a_opt);
 				if (!r.saviors.empty()) bits.push_back(std::format("was saved by {}", JoinList(Names(a_b, r.saviors))));
+			} else if (a_p.startHealthPct < a_b.nearDeathPct) {
+				bits.push_back("went in already close to death from earlier wounds");
 			} else bits.push_back("was never near death");
 			const int kills = EnemyKills(a_b, a_p, foes);
 			bits.push_back(kills == 0 ? std::string("killed none of the other side") : std::format("killed {} of the other side", kills));
@@ -340,7 +344,7 @@ namespace BSM
 		bool CameThroughEasily(const Battle& a_b, Side a_side)
 		{
 			for (const auto* p : OnSide(a_b, a_side)) {
-				if (p->dead || p->WasCritical() || p->damageTaken >= 0.25f * p->info.maxHealth) return false;
+				if (p->dead || p->WasCritical() || p->damageTaken >= 0.25f * p->info.maxHealth || p->startHealthPct < a_b.nearDeathPct) return false;
 			}
 			return true;
 		}

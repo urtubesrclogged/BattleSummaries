@@ -5,6 +5,12 @@
 - Fixed a crash to desktop when the player tried to use furniture that someone else was already sitting on. The
   game calls the function this mod hooks for that check too, with a value that is not an actor; the hook no longer
   reads through it.
+- A battle is now the party, those who fought the party, and those who fought them. On creature-heavy load orders
+  every predator and its prey near a fight used to be listed as enemies and credited with kills.
+- A fighter who walked into a battle already close to death is told so, not described as brought there by this
+  battle.
+- Magic-effect events are ignored while no battle is on and during loading, where the game reports thousands.
+- Verified on Skyrim SE 1.5.97 as well as Skyrim VR.
 
 ## 1.0.0
 

@@ -23,6 +23,6 @@
     "en"
   ],
   "version": "1.0.1",
-  "changelog": "Fixed a crash to desktop when the player tried to use furniture that someone else was already sitting on.",
+  "changelog": "Fixed a crash to desktop when the player tried to use furniture someone else was sitting on. Wildlife fighting each other near a battle is no longer listed among the enemies, and a fighter who went in already close to death is described that way.",
   "min_skyrimnet_version": "0.25.0"
 }

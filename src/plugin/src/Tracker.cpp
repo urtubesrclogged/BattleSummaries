@@ -45,6 +45,7 @@ namespace BSM::Tracker
 		std::mutex          g_queueLock;  // held only to push or swap; never across a game call
 		std::vector<Report> g_queue;
 		std::atomic<bool>   g_installed{ false };
+		std::atomic<bool>   g_battleOn{ false };  // magic-effect events are only worth queueing while one is
 
 		void Push(Report a_r)
 		{
@@ -125,6 +126,7 @@ namespace BSM::Tracker
 			if (i.name.empty()) i.name = "someone";
 			i.isPlayer = a_actor == pc;
 			i.maxHealth = MaxHealthOf(a_actor);
+			i.healthPct = HealthPct(a_actor);
 			if (OnPlayerSide(a_actor, pc, &i.master)) i.side = Side::kPlayer;
 			else if (a_actor->IsHostileToActor(pc)) i.side = Side::kEnemy;
 			else i.side = Side::kOther;
@@ -250,6 +252,7 @@ namespace BSM::Tracker
 				SKSE::log::info("Battle {} began at '{}'", g_current->id, g_current->location);
 			}
 			g_quiet = 0.0;
+			g_battleOn = true;
 		}
 
 		Participant* Join(RE::Actor* a_actor)
@@ -277,6 +280,7 @@ namespace BSM::Tracker
 			if (b.participants.size() < 2 || !blows || b.Count(Side::kEnemy) == 0) {
 				SKSE::log::info("Battle {} came to nothing ({} participants); forgotten", b.id, b.participants.size());
 				g_current.reset();
+			g_battleOn = false;
 				g_quiet = 0.0;
 				return;
 			}
@@ -302,6 +306,7 @@ namespace BSM::Tracker
 
 			g_history.push_front(std::move(b));
 			g_current.reset();
+			g_battleOn = false;
 			while (g_history.size() > kHistory) {
 				g_extra.erase(g_history.back().id);
 				g_history.pop_back();
@@ -313,8 +318,8 @@ namespace BSM::Tracker
 		bool InBattle(RE::Actor* a_actor) { return g_current && a_actor && g_current->Find(a_actor->GetFormID()) != nullptr; }
 
 		// A newcomer belongs to the battle when they are on the player's side, or the one they are fighting is on the
-		// player's side or already in the battle as its enemy. Bystanders' quarrels with each other (a hunter and his deer,
-		// a wolf and a mudcrab) stay out of it.
+		// player's side or has fought the player's side in this battle. Bystanders' quarrels with each other (a hunter and
+		// his deer, a wolf and a mudcrab) stay out of it.
 		bool Belongs(RE::Actor* a_new, RE::Actor* a_other, RE::Actor* a_pc)
 		{
 			if (!a_new || !Near(a_new)) return false;
@@ -322,8 +327,10 @@ namespace BSM::Tracker
 			if (!a_other || a_other == a_new) return false;
 			if (OnPlayerSide(a_other, a_pc)) return true;
 			if (!g_current) return false;
+			// ...and only when that one has itself fought the player's side: otherwise every predator near a fight drags
+			// in its prey, and their prey's attackers, until the whole valley is "the battle" (seen on a creature-heavy list)
 			const auto* p = g_current->Find(a_other->GetFormID());
-			return p && p->info.side != Side::kOther;
+			return p && p->engaged;
 		}
 
 		// refreshes those already in, admits those who belong
@@ -504,7 +511,13 @@ namespace BSM::Tracker
 			auto* pc = RE::PlayerCharacter::GetSingleton();
 			auto* ui = RE::UI::GetSingleton();
 			const auto& cfg = Settings::Get();
-			if (!pc || !ui || !pc->Is3DLoaded() || !cfg.enabled) return false;
+			if (!pc || !ui || !cfg.enabled) return false;
+			if (!pc->Is3DLoaded()) {
+				// loading: the game re-applies every actor's effects and reports each one; none of it is a battle
+				std::scoped_lock l{ g_queueLock };
+				g_queue.clear();
+				return false;
+			}
 			bool battle = false;
 
 			const double now = Now();
@@ -642,7 +655,7 @@ namespace BSM::Tracker
 			RE::BSEventNotifyControl ProcessEvent(const RE::TESMagicEffectApplyEvent* a_e, RE::BSTEventSource<RE::TESMagicEffectApplyEvent>*) override
 			{
 				Perf::Scope timed{ Perf::eventSink };
-				if (a_e && a_e->magicEffect && Id(a_e->target)) {
+				if (a_e && a_e->magicEffect && g_battleOn.load(std::memory_order_relaxed) && Id(a_e->target)) {
 					Report r{ Report::Type::kEffect, Id(a_e->target), Id(a_e->caster) };
 					r.effect = a_e->magicEffect;
 					Push(r);
@@ -802,6 +815,7 @@ namespace BSM::Tracker
 		}
 		std::scoped_lock l{ g_lock };
 		g_current.reset();
+			g_battleOn = false;
 		g_history.clear();
 		g_extra.clear();
 		g_live.clear();
@@ -850,9 +864,12 @@ namespace BSM::Tracker
 			s += std::format("\nbattle {} at '{}', {:.0f}s:", b.id, b.location, b.endedAt - b.startedAt);
 			for (const auto& p : b.participants) {
 				s += std::format(" [{} {:08X} side {}{} taken {:.0f}/{:.0f} dealt {:.0f} healed {:.0f} min {:.0f}% downs {}{}{}]", p.info.name, p.info.id,
-					static_cast<int>(b.EffectiveSide(p)), b.Involved(p) ? "" : " uninvolved", p.damageTaken, p.info.maxHealth, p.damageDealt, p.healingReceived,
+					static_cast<int>(b.EffectiveSide(p)), b.Involved(p) ? (p.engaged ? "" : " (at one remove)") : " uninvolved", p.damageTaken, p.info.maxHealth, p.damageDealt, p.healingReceived,
 					p.minHealthPct * 100.0f, p.downs, p.nearDeath ? " neardeath" : "", p.dead ? " dead" : "");
 			}
+		}
+		for (auto& ch : s) {
+			if (static_cast<unsigned char>(ch) >= 0x80) ch = '?';  // a name in another code page made the HTTP layer refuse the whole string
 		}
 		return s;
 	}

@@ -53,8 +53,10 @@ namespace BSM
 			return *p;
 		}
 		participants.push_back({});
-		participants.back().info = a_info;
-		return participants.back();
+		auto& p = participants.back();
+		p.info = a_info;
+		p.startHealthPct = p.healthPct = p.minHealthPct = std::clamp(a_info.healthPct, 0.0f, 1.0f);
+		return p;
 	}
 
 	void Battle::MarkCritical(Participant& a_p, double a_now)
@@ -72,9 +74,21 @@ namespace BSM
 		a_healthPct = std::clamp(a_healthPct, 0.0f, 1.0f);
 		p->healthPct = a_healthPct;
 		p->minHealthPct = std::min(p->minHealthPct, a_healthPct);
-		if (a_healthPct < nearDeathPct && !p->dead) {
+		// Near death counts when this battle put them there: someone who walked in already at death's door and was
+		// not hurt further was not "brought to the edge" by anything that happened here.
+		const bool here = p->startHealthPct >= nearDeathPct || p->damageTaken >= 0.05f * p->info.maxHealth;
+		if (a_healthPct < nearDeathPct && !p->dead && here) {
 			p->nearDeath = true;
 			MarkCritical(*p, a_now);
+		}
+	}
+
+	void Battle::MarkFought(Participant& a_x, Participant& a_y)
+	{
+		if (a_x.info.side == Side::kPlayer || a_y.info.side == Side::kPlayer) {
+			a_x.engaged = a_y.engaged = true;
+		} else if (a_x.engaged || a_y.engaged) {
+			a_x.involved = a_y.involved = true;
 		}
 	}
 
@@ -93,7 +107,10 @@ namespace BSM
 		if (a_attacker != 0 && a_attacker != a_target) {
 			t->lastAttacker = a_attacker;
 			t->lastAttackedAt = a_now;
-			if (auto* a = Find(a_attacker)) a->damageDealt += a_amount;
+			if (auto* a = Find(a_attacker)) {
+				a->damageDealt += a_amount;
+				MarkFought(*t, *a);
+			}
 		}
 		Sample(a_target, a_healthPctAfter, a_now);
 	}
@@ -121,6 +138,9 @@ namespace BSM
 			}
 		}
 		t->effects.push_back({ a_label, a_source, a_by, a_hostile, 1 });
+		if (a_hostile && a_by != a_target) {
+			if (auto* by = Find(a_by)) MarkFought(*Find(a_target), *by);  // Find again: push_back may have moved t
+		}
 	}
 
 	void Battle::Down(ActorId a_id, double a_now)
@@ -147,7 +167,10 @@ namespace BSM
 		v->killer = a_killer;
 		v->diedAt = a_now;
 		v->minHealthPct = 0.0f;
-		if (auto* k = Find(a_killer)) k->kills.push_back(a_victim);
+		if (auto* k = Find(a_killer)) {
+			k->kills.push_back(a_victim);
+			MarkFought(*v, *k);
+		}
 	}
 
 	Side Battle::EffectiveSide(const Participant& a_p) const
@@ -173,9 +196,7 @@ namespace BSM
 
 	bool Battle::Involved(const Participant& a_p) const
 	{
-		if (a_p.info.side == Side::kPlayer) return true;
-		return a_p.damageTaken > 0.0f || a_p.damageDealt > 0.0f || a_p.dead || !a_p.kills.empty() || !a_p.effects.empty() || a_p.healingDone > 0.0f ||
-			   a_p.healingReceived > 0.0f || a_p.downs > 0;
+		return a_p.info.side == Side::kPlayer || a_p.engaged || a_p.involved;
 	}
 
 	float Battle::SideDamageDealt(Side a_side) const
@@ -194,6 +215,6 @@ namespace BSM
 
 	int Battle::Dead(Side a_side) const
 	{
-		return static_cast<int>(std::ranges::count_if(participants, [&](const Participant& p) { return p.dead && EffectiveSide(p) == a_side; }));
+		return static_cast<int>(std::ranges::count_if(participants, [&](const Participant& p) { return p.dead && Involved(p) && EffectiveSide(p) == a_side; }));
 	}
 }

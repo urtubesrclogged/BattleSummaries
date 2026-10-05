@@ -145,6 +145,7 @@ namespace
 		b.Join(Info(kBandit1, "Bandit", Side::kEnemy, 100));
 		b.Join(Info(kGuard, "Whiterun Guard", Side::kOther, 200));
 		b.Join(Info(kMage, "Angry Farmer", Side::kOther, 80));
+		b.Damage(kHero, kBandit1, 5, 0.97f, 1);  // the bandit fights the player; the guard then deals with the bandit
 		b.Damage(kBandit1, kGuard, 100, 0, 2);
 		b.Death(kBandit1, kGuard, 2);
 		b.Damage(kHero, kMage, 10, 0.95f, 3);
@@ -202,6 +203,54 @@ namespace
 		Check(!Has(five, "None of them"), "alone on your side: no line about the others", five);
 	}
 
+	// Seen in play on a creature-heavy list: predators and prey all around a fight are "in combat", some with the
+	// player as their target, and fight each other. Only what fought the party, or fought those who did, is the battle.
+	void TestWildlifeAroundAFight()
+	{
+		constexpr ActorId kMinotaur = 0xFF003001, kElk = 0xFF003002, kCrab = 0xFF003003, kEchatere = 0xFF003004, kHorse = 0xFF003005;
+		Battle b;
+		b.startedAt = 0;
+		b.location = "the wilds of Skyrim";
+		auto hero = Info(kHero, "Kaira", Side::kPlayer, 100);
+		hero.healthPct = 0.12f;  // still hurt from the last fight
+		b.Join(hero);
+		b.Join(Info(kLydia, "Jenassa", Side::kPlayer, 200));
+		b.Join(Info(kMinotaur, "Minotaur", Side::kEnemy, 300));
+		b.Join(Info(kElk, "Elk", Side::kEnemy, 60));          // "in combat" with the player only because it fled
+		b.Join(Info(kCrab, "Crab", Side::kEnemy, 20));
+		b.Join(Info(kEchatere, "Echatere", Side::kEnemy, 80));
+		b.Join(Info(kHorse, "Horse", Side::kOther, 100));
+		b.Sample(kHero, 0.12f, 1);
+		b.Damage(kMinotaur, kHero, 300, 0.0f, 5);
+		b.Death(kMinotaur, kHero, 5);
+		b.Damage(kCrab, kEchatere, 20, 0.0f, 6);   // a predator and its prey: nothing to do with the party
+		b.Death(kCrab, kEchatere, 6);
+		b.Damage(kHorse, kEchatere, 30, 0.7f, 7);
+		b.endedAt = 60;
+
+		Check(b.Count(Side::kEnemy) == 1 && b.Dead(Side::kEnemy) == 1, "only what fought the party is an enemy", "");
+		Check(!b.Find(kHero)->WasCritical(), "walking in at death's door is not being brought there", "");
+		const auto me = BuildSummary(b, kHero, "Kaira", {});
+		const auto text = SummaryText(me);
+		Check(Has(text, "Kaira and Jenassa fought against Minotaur.") && Has(text, "The one enemy was killed.") && Has(text, "Who killed the enemies: Kaira 1 (Minotaur)."),
+			"the battle is the party against the minotaur", text);
+		Check(!Has(text, "Echatere") && !Has(text, "Crab") && !Has(text, "Elk") && !Has(text, "Horse") && !Has(text, "caught up"), "the wildlife's own quarrels are not told", text);
+		Check(Has(text, "Kaira went into this fight already close to death from earlier wounds") && !Has(text, "edge of death"), "already wounded going in", text);
+		const auto other = SummaryText(BuildSummary(b, kLydia, "Jenassa", {}));
+		Check(Has(other, "Kaira: took no damage worth the name; went in already close to death from earlier wounds; killed 1 of the other side."), "the companion's line", other);
+
+		// someone who fights an enemy of the party is part of it; hurt further while already low counts as near death
+		Battle c;
+		c.Join(hero);
+		c.Join(Info(kMinotaur, "Minotaur", Side::kEnemy, 300));
+		c.Join(Info(kGuard, "Whiterun Guard", Side::kOther, 200));
+		c.Damage(kHero, kMinotaur, 8, 0.04f, 1);
+		c.Damage(kMinotaur, kGuard, 50, 0.8f, 2);
+		c.endedAt = 10;
+		Check(c.Involved(*c.Find(kGuard)) && c.EffectiveSide(*c.Find(kGuard)) == Side::kPlayer, "a guard who fights the party's enemy is on the party's side", "");
+		Check(c.Find(kHero)->WasCritical() && c.Find(kHero)->broughtLowBy == kMinotaur, "hurt further while already low is near death", "");
+	}
+
 	void TestEdges()
 	{
 		Battle empty;
@@ -215,6 +264,7 @@ namespace
 		b.Damage(kHero, 0, 500, 0.0f, 1);  // a fall: no attacker
 		b.Damage(kHero, kHero, 5, 0.0f, 1);  // self damage counts as no attacker
 		b.Damage(kBandit1, 0x999, 10, 0.9f, 1);  // an attacker who never joined
+		b.Damage(kBandit1, kHero, 1, 0.89f, 1);
 		b.Heal(0x999, kHero, 10, "", 1);          // a target who never joined
 		b.Death(0x999, kHero, 1);
 		const auto ongoing = SummaryText(BuildSummary(b, kHero, "Kaira", {}));
@@ -240,6 +290,7 @@ int main()
 	TestNearDeathAndSummon();
 	TestOthers();
 	TestBigFightAndBystanders();
+	TestWildlifeAroundAFight();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);
 	if (std::getenv("BSM_SHOW")) {

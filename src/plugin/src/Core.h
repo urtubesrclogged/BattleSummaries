@@ -28,6 +28,7 @@ namespace BSM
 		bool        isPlayer{ false };
 		ActorId     master{ 0 };  // the summoner / reanimator, when this is a commanded actor
 		float       maxHealth{ 1.0f };
+		float       healthPct{ 1.0f };  // their health share when they joined
 	};
 
 	// One kind of magic applied to a participant by one actor: "burned by fire" by 00012345 with "Flames", 4 times.
@@ -59,7 +60,8 @@ namespace BSM
 		};
 		std::map<ActorId, Heal> healFrom;
 
-		float  healthPct{ 1.0f };  // as last seen
+		float  startHealthPct{ 1.0f };  // what they brought into the battle
+		float  healthPct{ 1.0f };       // as last seen
 		float  minHealthPct{ 1.0f };
 		bool   nearDeath{ false };  // health fell below the near-death share while still standing
 		int    downs{ 0 };          // times knocked into bleedout
@@ -73,6 +75,12 @@ namespace BSM
 
 		std::vector<ActorId>    kills;
 		std::vector<EffectNote> effects;
+
+		// Fought the player's side directly (traded a blow, a kill or a hostile spell with one of them)...
+		bool engaged{ false };
+		// ...or fought someone who did. Anything further removed (prey of a predator that never touched the party) is not
+		// part of this battle's story, whatever combat state the game put it in.
+		bool involved{ false };
 
 		ActorId lastAttacker{ 0 };
 		double  lastAttackedAt{ -1.0 };
@@ -113,8 +121,8 @@ namespace BSM
 		// fought the player's enemies counts with the player's side.
 		[[nodiscard]] Side EffectiveSide(const Participant& a_p) const;
 
-		// Took part in the fighting. The player's side always counts; anyone else must have traded a blow, a spell or a
-		// death (a deer that only bolted is not an enemy).
+		// Took part in this battle. The player's side always counts; anyone else must have fought the player's side, or
+		// fought someone who did (a deer that only bolted is not an enemy, and neither is a crab a wolf killed nearby).
 		[[nodiscard]] bool Involved(const Participant& a_p) const;
 
 		[[nodiscard]] float SideDamageDealt(Side a_side) const;
@@ -123,5 +131,6 @@ namespace BSM
 
 	private:
 		void MarkCritical(Participant& a_p, double a_now);
+		void MarkFought(Participant& a_x, Participant& a_y);
 	};
 }
