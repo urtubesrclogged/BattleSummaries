@@ -14,6 +14,27 @@ namespace BSM::Effects
 				   a_arch == Arch::kAccumulateMagnitude;
 		}
 
+		// Something a fighter casts, drinks, shouts or strikes with: the carriers whose effects are worth naming even when
+		// this file cannot place them. Anything else (or no known carrier at all) is some mod's own machinery.
+		bool Castable(const RE::MagicItem* a_source)
+		{
+			if (!a_source) return false;
+			switch (a_source->GetSpellType()) {
+			case RE::MagicSystem::SpellType::kSpell:
+			case RE::MagicSystem::SpellType::kPower:
+			case RE::MagicSystem::SpellType::kLesserPower:
+			case RE::MagicSystem::SpellType::kVoicePower:
+			case RE::MagicSystem::SpellType::kPoison:
+			case RE::MagicSystem::SpellType::kPotion:
+			case RE::MagicSystem::SpellType::kScroll:
+			case RE::MagicSystem::SpellType::kStaffEnchantment:
+			case RE::MagicSystem::SpellType::kEnchantment:
+				return true;
+			default:
+				return false;
+			}
+		}
+
 		const char* ResistLabel(AV a_av)
 		{
 			switch (a_av) {
@@ -97,6 +118,8 @@ namespace BSM::Effects
 				if (av == AV::kMagicka) return Kind{ "drained of magicka", true };
 				if (av == AV::kDamageResist) return Kind{ "armor weakened", true };
 			}
+			// unplaced: named by the effect itself, when a spell, poison or weapon carried it
+			if (!Castable(a_source)) return std::nullopt;
 			return Kind{ std::format("afflicted with {}", name), true };
 		}
 
@@ -109,7 +132,7 @@ namespace BSM::Effects
 			if (av == AV::kMagicka) return Kind{ "magicka restored", false };
 		}
 		// an unplaced helpful effect: worth a line when someone else gave it, noise when it is the caster's own
-		if (a_selfCast) return std::nullopt;
+		if (a_selfCast || !Castable(a_source)) return std::nullopt;
 		return Kind{ std::format("aided with {}", name), false };
 	}
 }
