@@ -21,6 +21,16 @@ namespace BSM
 		void        ReloadSettings(Tag*) { Settings::Load(); }
 		void        SetVerboseLog(Tag*, bool a_on) { Settings::SetVerbose(a_on); }
 		std::string DebugFakeRescue(Tag*, RE::Actor* a_victim) { return Tracker::FakeRescue(a_victim); }
+		void ReportRegistered(Tag*, std::int32_t a_result)
+		{
+			if (a_result == 0) SKSE::log::info("SkyrimNet: the battle_summary decorator is registered");
+			else SKSE::log::error("SkyrimNet: REFUSED to register the battle_summary decorator (result {}): NPCs will not be given summaries", a_result);
+		}
+		void ReportRemembered(Tag*, std::int32_t a_result)
+		{
+			if (a_result == 0) SKSE::log::info("SkyrimNet: the battle was accepted as a remembered event");
+			else SKSE::log::error("SkyrimNet: REFUSED the remembered event (result {})", a_result);
+		}
 		std::string GetVersion(Tag*) { return std::format("{}.{}.{}", BSM_VERSION_MAJOR, BSM_VERSION_MINOR, BSM_VERSION_PATCH); }
 	}
 
@@ -37,6 +47,8 @@ namespace BSM
 		REG(ReloadSettings);
 		REG(SetVerboseLog);
 		REG(DebugFakeRescue);
+		REG(ReportRegistered);
+		REG(ReportRemembered);
 		REG(GetVersion);
 #undef REG
 		return true;

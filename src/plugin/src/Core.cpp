@@ -8,6 +8,8 @@ namespace BSM
 	{
 		// how long after a blow its dealer still counts as the one who brought the victim low or killed them
 		constexpr double kAttackerMemory = 8.0;
+		// a death this soon after a blow is that blow's doing
+		constexpr double kFinalBlow = 3.0;
 
 		ActorId TopDamager(const Participant& a_p)
 		{
@@ -161,7 +163,11 @@ namespace BSM
 	{
 		auto* v = Find(a_victim);
 		if (!v || v->dead) return;  // the game reports each death twice (dying, then dead)
-		if (a_killer == 0 || a_killer == a_victim) a_killer = RecentAttacker(*v, a_now);
+		// The game's own death report names the player as the killer for many kills their followers make (seen in play:
+		// a player who only healed was credited with every kill). Whoever dealt the blow the victim died of is the
+		// killer; the game's word is used only when no blow was seen just before the death (a kill move, a script).
+		if (v->lastAttacker != 0 && a_now - v->lastAttackedAt <= kFinalBlow) a_killer = v->lastAttacker;
+		else if (a_killer == 0 || a_killer == a_victim) a_killer = RecentAttacker(*v, a_now);
 		v->dead = true;
 		v->isDown = false;
 		v->killer = a_killer;

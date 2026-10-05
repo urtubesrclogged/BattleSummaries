@@ -7,6 +7,11 @@ ScriptName BattleSummaries_Native Native Hidden
 ; show is false when there is nothing to tell (no battle, too long ago, or akActor neither fought in it nor saw it).
 String Function GetSummaryJson(Actor akActor) Global Native
 
+; Called back by BattleSummaries_SkyrimNet with what SkyrimNet answered, so the mod's own log shows whether its
+; SkyrimNet side is working (0 = success).
+Function ReportRegistered(Int aiResult) Global Native
+Function ReportRemembered(Int aiResult) Global Native
+
 ; ---- for testing and support ----
 String Function GetSummaryText(Actor akActor) Global Native   ; the same summary as plain text
 String Function GetStatus() Global Native                   ; the battle underway, with each participant's running totals

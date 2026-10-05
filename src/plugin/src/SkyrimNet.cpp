@@ -29,7 +29,9 @@ namespace BSM::SkyrimNet
 			return;
 		}
 		Call("Register", RE::MakeFunctionArguments());
-		SKSE::log::info("SkyrimNet: asked for the battle_summary decorator to be registered");
+		// the answer comes back through BattleSummaries_Native.ReportRegistered; no answer at all means
+		// BattleSummaries_SkyrimNet.pex did not load
+		SKSE::log::info("SkyrimNet: asking for the battle_summary decorator to be registered");
 	}
 
 	void Remember(const std::string& a_text)

@@ -23,6 +23,6 @@
     "en"
   ],
   "version": "1.0.2",
-  "changelog": "The mod's SkyrimNet content now carries the same id as its page on the plugin hub (urtubesrclogged.battle-summaries). When updating, replace the old version rather than merging into it, so the earlier content folder does not stay behind.",
+  "changelog": "Kills are credited to whoever dealt the final blow (followers' kills used to go to the player). The log now shows whether SkyrimNet accepted the decorator and each remembered event. When updating, replace the old version rather than merging into it.",
   "min_skyrimnet_version": "0.25.0"
 }

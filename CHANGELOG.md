@@ -2,6 +2,12 @@
 
 ## 1.0.2
 
+- **Kills are credited to whoever dealt the final blow.** The game's own death report names the player for many kills
+  their followers make, so a player who only healed was told (and so were the NPCs) that they had killed everyone.
+- `BattleSummaries.log` now says whether SkyrimNet accepted the decorator and each remembered event, when SkyrimNet
+  first asks for a summary, and which NPCs were given one: enough to tell from a log whether the SkyrimNet side works.
+- Open country is named correctly in translated games ("the wilds of ..." used to appear only in English).
+- Run on Skyrim AE 1.6.1170 by a player, as well as SE 1.5.97 and VR.
 - The mod's SkyrimNet content now has the same id as its page on the SkyrimNet plugin hub
   (`urtubesrclogged.battle-summaries`; it was `urtubesrclogged.battlesummaries`). Nothing changes in game.
 - **When updating, replace the old version; do not merge into it.** A merge leaves the earlier content folder

@@ -156,7 +156,8 @@ namespace BSM::Tracker
 			// open country has no named place, and the worldspace's own name ("Skyrim") says nothing; a smaller one
 			// (Solstheim, a walled city) does
 			if (auto* ws = pc->GetWorldspace()) {
-				if (const char* n = ws->GetFullName(); n && *n) return std::string_view(n) == "Skyrim" ? "the wilds of Skyrim" : n;
+				// (the mainland is recognised by its form, 0000003C: its name is translated in other languages)
+				if (const char* n = ws->GetFullName(); n && *n) return ws->GetFormID() == 0x3C ? std::format("the wilds of {}", n) : std::string(n);
 			}
 			return {};
 		}
@@ -831,6 +832,23 @@ namespace BSM::Tracker
 	{
 		std::string age;
 		const auto  r = SummaryFor(a_viewer, age);
+		{
+			// Support: the log says that SkyrimNet is asking, and for whom there was something to tell.
+			static std::mutex            lock;
+			static bool                  asked = false;
+			static std::set<std::string> told;
+			std::scoped_lock             l{ lock };
+			if (!asked) {
+				asked = true;
+				SKSE::log::info("SkyrimNet asked for a summary for the first time this session: the decorator is in use");
+			}
+			if (r.show && told.size() < 400) {
+				const auto key = std::format("{}|{}|{}", r.name, r.general.empty() ? std::string() : r.general.front(), r.ongoing);
+				if (told.insert(key).second) {
+					SKSE::log::info("Summary given to {} ({}, battle {})", r.name, r.participant ? "fought in it" : "witness", r.ongoing ? "underway" : age);
+				}
+			}
+		}
 		nlohmann::json j;
 		j["show"] = r.show;
 		j["ongoing"] = r.ongoing;

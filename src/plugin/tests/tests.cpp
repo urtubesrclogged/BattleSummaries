@@ -262,6 +262,32 @@ namespace
 		Check(c.Find(kHero)->WasCritical() && c.Find(kHero)->broughtLowBy == kMinotaur, "hurt further while already low is near death", "");
 	}
 
+	// Reported by a player: "NPCs think I killed everyone myself, even if I am just healing". The game's death report
+	// named the player for kills the followers made.
+	void TestKillCreditFollowsTheFinalBlow()
+	{
+		Battle b;
+		b.startedAt = 0;
+		b.Join(Info(kHero, "Kaira", Side::kPlayer, 200));
+		b.Join(Info(kLydia, "Lydia", Side::kPlayer, 300));
+		b.Join(Info(kBandit1, "Cave Bear", Side::kEnemy, 300));
+		b.Join(Info(kBandit2, "Cave Bear", Side::kEnemy, 300));
+		b.Join(Info(kMage, "Cultist", Side::kEnemy, 100));
+		b.Damage(kLydia, kBandit1, 60, 0.8f, 1);
+		b.Heal(kLydia, kHero, 60, "Healing Hands", 2);
+		b.Damage(kBandit1, kLydia, 300, 0.0f, 3);
+		b.Death(kBandit1, kHero, 3.1);          // the game says the player did it
+		b.Damage(kBandit2, kLydia, 300, 0.0f, 5);
+		b.Death(kBandit2, kHero, 5.1);
+		b.Damage(kMage, kLydia, 40, 0.6f, 6);
+		b.Death(kMage, kHero, 20);              // no blow near the death: the game's word stands
+		b.endedAt = 25;
+		Check(b.Find(kLydia)->kills.size() == 2 && b.Find(kHero)->kills.size() == 1, "the one who dealt the final blow made the kill", "");
+		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", {}));
+		Check(Has(hero, "Who killed the enemies: Lydia 2 (Cave Bear x2); Kaira 1 (Cultist)."), "tally by final blow", hero);
+		Check(Has(hero, "Kaira took no damage worth the name and dealt no damage to anyone."), "a healer dealt no damage", hero);
+	}
+
 	void TestEdges()
 	{
 		Battle empty;
@@ -302,6 +328,7 @@ int main()
 	TestOthers();
 	TestBigFightAndBystanders();
 	TestWildlifeAroundAFight();
+	TestKillCreditFollowsTheFinalBlow();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);
 	if (std::getenv("BSM_SHOW")) {
