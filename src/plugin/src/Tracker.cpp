@@ -716,13 +716,16 @@ namespace BSM::Tracker
 		const Battle* BattleFor(ActorId a_viewer, bool& a_witness)
 		{
 			a_witness = false;
-			if (g_current) {
-				if (g_current->Find(a_viewer)) return &*g_current;
-			}
+			// a fighter in it: someone who fought, not merely someone the game put in its combat state
+			const auto fought = [&](const Battle& a_b) {
+				const auto* p = a_b.Find(a_viewer);
+				return p && a_b.Involved(*p);
+			};
+			if (g_current && fought(*g_current)) return &*g_current;
 			const float hours = GameHours();
 			for (const auto& b : g_history) {
 				if (hours - b.endedGameHours > Settings::Get().summaryGameHours) continue;
-				if (b.Find(a_viewer)) return &b;
+				if (fought(b)) return &b;
 			}
 			// not in any of them: the latest one they stood near
 			if (g_current) {

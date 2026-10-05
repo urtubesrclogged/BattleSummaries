@@ -232,10 +232,21 @@ namespace
 		Check(!b.Find(kHero)->WasCritical(), "walking in at death's door is not being brought there", "");
 		const auto me = BuildSummary(b, kHero, "Kaira", {});
 		const auto text = SummaryText(me);
+		Check(Has(SummaryText(BuildSummary([] {
+			Battle o;
+			o.Join(Info(kLydia, "Jenassa", Side::kPlayer, 200));  // the follower joined first
+			o.Join(Info(kHero, "Kaira", Side::kPlayer, 100));
+			o.Join(Info(kBandit1, "Bandit", Side::kEnemy, 50));
+			o.Damage(kBandit1, kLydia, 10, 0.8f, 1);
+			o.endedAt = 5;
+			return o;
+		}(), kHero, "Kaira", {})), "Kaira and Jenassa fought against Bandit."), "the player leads the list, whoever joined first", "");
 		Check(Has(text, "Kaira and Jenassa fought against Minotaur.") && Has(text, "The one enemy was killed.") && Has(text, "Who killed the enemies: Kaira 1 (Minotaur)."),
 			"the battle is the party against the minotaur", text);
 		Check(!Has(text, "Echatere") && !Has(text, "Crab") && !Has(text, "Elk") && !Has(text, "Horse") && !Has(text, "caught up"), "the wildlife's own quarrels are not told", text);
 		Check(Has(text, "Kaira went into this fight already close to death from earlier wounds") && !Has(text, "edge of death"), "already wounded going in", text);
+		const auto elk = BuildSummary(b, kElk, "Elk", {});
+		Check(!elk.participant && elk.personal.empty(), "what never fought is a witness, not a fighter", SummaryText(elk));
 		const auto other = SummaryText(BuildSummary(b, kLydia, "Jenassa", {}));
 		Check(Has(other, "Kaira: took no damage worth the name; went in already close to death from earlier wounds; killed 1 of the other side."), "the companion's line", other);
 

@@ -63,6 +63,7 @@ namespace BSM
 			for (const auto& p : a_b.participants) {
 				if (a_b.Involved(p) && a_b.EffectiveSide(p) == a_side) out.push_back(&p);
 			}
+			std::ranges::stable_partition(out, [](const Participant* p) { return p->info.isPlayer; });  // the player leads the list
 			return out;
 		}
 
@@ -380,6 +381,7 @@ namespace BSM
 		r.general = General(a_b);
 
 		const auto* me = a_b.Find(a_viewer);
+		if (me && !a_b.Involved(*me)) me = nullptr;  // in the game's combat state, but never fought: a witness
 		r.participant = me != nullptr;
 		if (me) {
 			if (r.name.empty()) r.name = me->info.name;
