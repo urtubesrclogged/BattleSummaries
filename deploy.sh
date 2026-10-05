@@ -17,11 +17,13 @@ else
 	while IFS= read -r v; do TARGETS+=("${!v}"); done < <(compgen -v | grep -E '^MOD_DIR(_[A-Z0-9_]+)?$' | sort)
 fi
 [ ${#TARGETS[@]} -gt 0 ] || { echo "local.env: MOD_DIR is not set" >&2; exit 1; }
-GAME_EXE="${GAME_EXE:-SkyrimSE.exe}"
-if tasklist 2>/dev/null | grep -qi "$GAME_EXE"; then
-	echo "$GAME_EXE is running - close the game before deploying." >&2
-	exit 1
-fi
+# Any running Skyrim locks its mod manager's files: GAME_EXE from local.env and both stock names are checked.
+for exe in "${GAME_EXE:-SkyrimSE.exe}" SkyrimSE.exe SkyrimVR.exe; do
+	if tasklist 2>/dev/null | grep -qi "$exe"; then
+		echo "$exe is running - close the game before deploying." >&2
+		exit 1
+	fi
+done
 ID=urtubesrclogged.battlesummaries
 for M in "${TARGETS[@]}"; do
 	[ -d "$(dirname "$M")" ] || { echo "skipped (no such mods folder): $M" >&2; continue; }
