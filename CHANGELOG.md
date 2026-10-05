@@ -10,7 +10,7 @@
 - A fighter who walked into a battle already close to death is told so, not described as brought there by this
   battle.
 - Magic-effect events are ignored while no battle is on and during loading, where the game reports thousands.
-- Verified on Skyrim SE 1.5.97 as well as Skyrim VR.
+- Also run on Skyrim SE 1.5.97 (it loads, hooks and records battles there); so far only Skyrim VR had been tried.
 
 ## 1.0.0
 
