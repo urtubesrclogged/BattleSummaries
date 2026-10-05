@@ -22,7 +22,7 @@
   "languages": [
     "en"
   ],
-  "version": "1.0.0",
-  "changelog": "First public release.",
+  "version": "1.0.1",
+  "changelog": "Fixed a crash to desktop when the player tried to use furniture that someone else was already sitting on.",
   "min_skyrimnet_version": "0.25.0"
 }

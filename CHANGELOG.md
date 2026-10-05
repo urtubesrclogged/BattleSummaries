@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1
+
+- Fixed a crash to desktop when the player tried to use furniture that someone else was already sitting on. The
+  game calls the function this mod hooks for that check too, with a value that is not an actor; the hook no longer
+  reads through it.
+
 ## 1.0.0
 
 First public release.

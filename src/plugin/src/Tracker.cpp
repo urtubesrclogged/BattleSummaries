@@ -38,6 +38,7 @@ namespace BSM::Tracker
 			float      amount{ 0.0f };
 			float      pct{ -1.0f };
 			RE::FormID effect{ 0 };
+			std::uintptr_t source{ 0 };  // kDamage: the hook's second argument as it came, never dereferenced there
 			double     at{ 0.0 };
 		};
 
@@ -339,12 +340,46 @@ namespace BSM::Tracker
 			return (a_a && Near(a_a) && OnPlayerSide(a_a, a_pc)) || (a_b && Near(a_b) && OnPlayerSide(a_b, a_pc));
 		}
 
+		// The actor a damage report's raw source value points at, found by comparing it with the actors that exist: the
+		// value itself is never read through. nullptr when it is no actor we know (a furniture reference, a number).
+		// The actors are listed once per batch of reports (Drain clears the list), not once per report.
+		std::unordered_map<std::uintptr_t, RE::Actor*> g_known;
+		bool                                           g_knownListed{ false };
+
+		RE::Actor* ResolveSource(std::uintptr_t a_source, RE::Actor* a_pc)
+		{
+			if (a_source == 0) return nullptr;
+			if (!g_knownListed) {
+				g_knownListed = true;
+				g_known.clear();
+				g_known.emplace(reinterpret_cast<std::uintptr_t>(a_pc), a_pc);
+				if (auto* pl = RE::ProcessLists::GetSingleton()) {
+					for (auto& h : pl->highActorHandles) {
+						if (const auto ref = h.get()) g_known.emplace(reinterpret_cast<std::uintptr_t>(ref.get()), ref.get());
+					}
+				}
+				for (auto& [id, live] : g_live) {
+					if (const auto ref = live.handle.get()) g_known.emplace(reinterpret_cast<std::uintptr_t>(ref.get()), ref.get());
+				}
+			}
+			const auto it = g_known.find(a_source);
+			return it != g_known.end() ? it->second : nullptr;
+		}
+
 		void Handle(const Report& a_r)
 		{
 			auto* pc = RE::PlayerCharacter::GetSingleton();
 			auto* a = Lookup(a_r.a);
 			auto* b = Lookup(a_r.b);
 			if (!pc || !a) return;
+			ActorId attacker = a_r.b;
+			if (a_r.type == Report::Type::kDamage) {
+				b = ResolveSource(a_r.source, pc);
+				// a source that is no actor: for the player this is the furniture check, not a blow at all; for anyone else
+				// it is damage from something that is not an actor, so nobody's blow
+				if (!b && a_r.source != 0 && a == pc) return;
+				attacker = b ? b->GetFormID() : 0;
+			}
 
 			switch (a_r.type) {
 			case Report::Type::kCombat:
@@ -363,10 +398,10 @@ namespace BSM::Tracker
 				}
 				JoinPair(a, b, pc);
 				if (!InBattle(a)) return;
-				g_current->Damage(a_r.a, a_r.b, a_r.amount, a_r.pct, a_r.at);
+				g_current->Damage(a_r.a, attacker, a_r.amount, a_r.pct, a_r.at);
 				g_live[a_r.a].damageSince += a_r.amount;
 				g_quiet = 0.0;
-				SKSE::log::debug("damage: {:08X} took {:.1f} from {:08X}, health now {:.0f}%", a_r.a, a_r.amount, a_r.b, a_r.pct * 100.0f);
+				SKSE::log::debug("damage: {:08X} took {:.1f} from {:08X}, health now {:.0f}%", a_r.a, a_r.amount, attacker, a_r.pct * 100.0f);
 				break;
 			}
 
@@ -420,7 +455,10 @@ namespace BSM::Tracker
 				reports.swap(g_queue);
 			}
 			if (reports.size() > Perf::queueHigh.load(std::memory_order_relaxed)) Perf::queueHigh = reports.size();
+			g_knownListed = false;
 			for (const auto& r : reports) Handle(r);
+			g_known.clear();
+			g_knownListed = false;
 		}
 
 		// who is healing a_actor right now: restore-health effects on them, and ones that landed in the last moments
@@ -619,19 +657,20 @@ namespace BSM::Tracker
 		// The engine also calls this slot for something that is not damage at all: when the player activates a crafting
 		// station, TESFurniture's activation calls it on the player with the furniture reference where the attacker
 		// would be, and treats what comes back in AL as "in combat, refuse" (SkyrimVR.exe+22BE0A, read from
-		// the running game). So the second argument is not always an actor, and the original's return value must reach the
-		// caller untouched: see the thunks below.
-		void OnHealthDamage(RE::Actor* a_target, RE::TESObjectREFR* a_attacker, float a_damage)
+		// the running game). A second call in the same function (+22BF3A, reached when the player tries to use furniture
+		// someone already occupies) passes a small integer there instead. So the second argument is not always an actor,
+		// not even always a pointer: it must never be dereferenced in the hook (doing so crashed the game), and the
+		// original's return value must reach the caller untouched: see the thunks below.
+		void OnHealthDamage(RE::Actor* a_target, void* a_source, float a_damage)
 		{
 			Perf::Scope timed{ Perf::damageHook };
 			if (!a_target || !Settings::Get().enabled) return;
-			if (a_attacker && !a_attacker->Is(RE::FormType::ActorCharacter)) {
-				if (a_target->IsPlayerRef()) return;  // the crafting-station call: not a blow at all (see above)
-				a_attacker = nullptr;                 // hurt by something that is not an actor: nobody's blow
-			}
 			const float amount = std::fabs(a_damage);
 			if (!(amount > 0.01f) || amount > 1.0e6f) return;
-			Report r{ Report::Type::kDamage, a_target->GetFormID(), a_attacker ? a_attacker->GetFormID() : 0, amount };
+			// a_source is only carried as a number here: it is resolved against the actors that exist when the report is
+			// worked through (ResolveSource), because it is not always a pointer at all
+			Report r{ Report::Type::kDamage, a_target->GetFormID(), 0, amount };
+			r.source = reinterpret_cast<std::uintptr_t>(a_source);
 			r.pct = HealthPct(a_target);
 			Push(r);
 		}
@@ -641,10 +680,10 @@ namespace BSM::Tracker
 		// in AL, and the player could no longer use any crafting station ("You cannot use this while in combat").
 		struct CharacterDamage
 		{
-			static std::uintptr_t thunk(RE::Actor* a_this, RE::TESObjectREFR* a_attacker, float a_damage)
+			static std::uintptr_t thunk(RE::Actor* a_this, void* a_source, float a_damage)
 			{
-				const std::uintptr_t result = func(a_this, a_attacker, a_damage);
-				OnHealthDamage(a_this, a_attacker, a_damage);
+				const std::uintptr_t result = func(a_this, a_source, a_damage);
+				OnHealthDamage(a_this, a_source, a_damage);
 				return result;
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
@@ -652,10 +691,10 @@ namespace BSM::Tracker
 
 		struct PlayerDamage
 		{
-			static std::uintptr_t thunk(RE::Actor* a_this, RE::TESObjectREFR* a_attacker, float a_damage)
+			static std::uintptr_t thunk(RE::Actor* a_this, void* a_source, float a_damage)
 			{
-				const std::uintptr_t result = func(a_this, a_attacker, a_damage);
-				OnHealthDamage(a_this, a_attacker, a_damage);
+				const std::uintptr_t result = func(a_this, a_source, a_damage);
+				OnHealthDamage(a_this, a_source, a_damage);
 				return result;
 			}
 			static inline REL::Relocation<decltype(thunk)> func;
