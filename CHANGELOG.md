@@ -14,6 +14,8 @@
   told as that, accident or not. Either makes the battle one to remember.
 - **Kill credit, again.** The game also names the player for deaths the player had no part in (a follower felled by a
   giant was told as slain by the player). Its word is now taken only when the one it names struck the victim.
+- **A battle ends with its enemies.** The game can keep the party "in combat" for minutes after the last enemy fell (a
+  follower chasing a deer); the battle used to stay open, and be told as underway, for as long.
 - **How long the battle lasted** is told as a figure: seconds up to a minute, minutes up to five, the nearest five
   minutes up to an hour, the nearest half hour beyond ("It lasted 42 seconds.", "It lasted about 25 minutes."). Time spent in menus is not counted.
 
