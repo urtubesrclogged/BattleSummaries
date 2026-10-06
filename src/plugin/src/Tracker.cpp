@@ -109,6 +109,7 @@ namespace BSM::Tracker
 		double                 g_injuryScanAt{ 0.0 };
 
 		double g_quiet{ 0.0 };
+		double g_lastBlow{ 0.0 };  // the last damage or death in the battle, or the last moment an enemy was still at it
 		double g_lastTick{ 0.0 };
 		int    g_nextId{ 1 };
 		std::string g_lastMemory;
@@ -400,6 +401,7 @@ namespace BSM::Tracker
 				SKSE::log::info("Battle {} began at '{}'", g_current->id, g_current->location);
 			}
 			g_quiet = 0.0;
+			g_lastBlow = a_now;
 			g_battleOn = true;
 		}
 
@@ -569,6 +571,7 @@ namespace BSM::Tracker
 				g_current->Damage(a_r.a, attacker, a_r.amount, a_r.pct, a_r.at);
 				g_live[a_r.a].damageSince += a_r.amount;
 				g_quiet = 0.0;
+				g_lastBlow = a_r.at;
 				SKSE::log::debug("damage: {:08X} took {:.1f} from {:08X}, health now {:.0f}%", a_r.a, a_r.amount, attacker, a_r.pct * 100.0f);
 				break;
 			}
@@ -583,6 +586,7 @@ namespace BSM::Tracker
 				g_current->Death(a_r.a, a_r.b, a_r.at);
 				WatchBody(a_r.a, a_r.at);
 				g_quiet = 0.0;
+				g_lastBlow = a_r.at;
 				SKSE::log::debug("death: {:08X} killed by {:08X}", a_r.a, a_r.b);
 				break;
 
@@ -708,7 +712,12 @@ namespace BSM::Tracker
 				if (g_current) {
 					battle = true;
 					if (g_current->participants.size() > Perf::mostParticipants.load(std::memory_order_relaxed)) Perf::mostParticipants = g_current->participants.size();
-					bool fighting = pc->IsInCombat();
+					// Still being fought while an enemy who took part is alive and in combat. Anyone else's combat state (the
+					// player's own included) only counts for a while after the last blow: the game can hold the party "in combat"
+					// with an elk that never fought for minutes after the last enemy fell (seen on a creature-heavy list), and
+					// the battle would be told as that long.
+					bool fighting = false;
+					bool lingering = pc->IsInCombat();
 					// by index: Join() below may grow the list
 					for (std::size_t i = 0; i < g_current->participants.size(); ++i) {
 						const auto id = g_current->participants[i].info.id;
@@ -767,7 +776,9 @@ namespace BSM::Tracker
 						live.damageSince = 0.0f;
 
 						if (actor->IsInCombat()) {
-							fighting = true;
+							const auto& part = g_current->participants[i];
+							if (g_current->Involved(part) && g_current->EffectiveSide(part) == Side::kEnemy) fighting = true;
+							else lingering = true;
 							// whoever they are fighting is in this battle too, even before a blow lands
 							if (const auto target = actor->GetActorRuntimeData().currentCombatTarget.get(); target && !InBattle(target.get()) && Belongs(target.get(), actor, pc)) {
 								Join(target.get());
@@ -776,8 +787,11 @@ namespace BSM::Tracker
 					}
 					std::erase_if(g_recentHeals, [&](const RecentHeal& h) { return now - h.at > 3.0; });
 
+					if (fighting) g_lastBlow = now;  // an enemy still at it counts like a blow
+					if (!fighting && lingering && now - g_lastBlow <= 20.0) fighting = true;
 					g_quiet = fighting ? 0.0 : g_quiet + dt;
-					if (g_quiet >= cfg.endGraceSeconds) End(now - g_quiet);
+					// it was fought until the last blow or the last moment an enemy was at it, not until the game let go
+					if (g_quiet >= cfg.endGraceSeconds) End(std::min(now - g_quiet, g_lastBlow));
 					else if (now - g_current->startedAt > 3600.0) End(now);  // something kept it open: close it
 				}
 				memories = DueMemories(now);
