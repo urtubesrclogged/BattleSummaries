@@ -6,8 +6,8 @@
   when one landed just before ("was injured in this fight and still carries it: Leg Injury (dealt by Bandit Chief)");
   one they already had is told as brought into the fight. Works out of the box with Blade and Blunt and Wildcat. Any
   other injury mod that marks its injuries with a keyword can be added in the ini (`[OtherMods] sInjuryKeywords`).
-- **Beheadings and severed limbs.** The game's own beheadings, and what Dismembering Framework does when it is
-  installed, are told with the kill ("Lydia beheaded Bandit Chief."). Neither mod is required.
+- **Beheadings and severed limbs.** The game's own beheadings, and what Dismembering Framework (limbs) and Next-Gen
+  Decapitations (heads) do when they are installed, are told with the kill ("Lydia beheaded Bandit Chief."). None of them is required.
 - Both can be switched off in the ini (`bInjuries`, `bDismemberment`).
 - **Innocents and allies slain.** A citizen or guard who was cut down without ever raising a weapon is no longer
   listed among the enemies: they are told as an innocent, with who killed them. An ally killed by their own side is

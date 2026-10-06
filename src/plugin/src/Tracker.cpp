@@ -273,7 +273,7 @@ namespace BSM::Tracker
 		// ---- beheadings and severed limbs (main thread) ----
 		void Push(Report a_r);
 
-		// the answer of DismemberingFramework.IsDismembered / IsDismemberedNode, given on the script thread
+		// the answer of DismemberingFramework.IsDismembered or NGDecapitations.IsDecapitated, given on the script thread
 		class LimbAnswer final : public RE::BSScript::IStackCallbackFunctor
 		{
 		public:
@@ -295,7 +295,19 @@ namespace BSM::Tracker
 		{
 			static const bool loaded = [] {
 				const bool on = ::GetModuleHandleW(L"DismemberingFramework.dll") != nullptr;
-				SKSE::log::info("Dismembering Framework is {}", on ? "loaded: bodies are checked for severed limbs through its script" : "not loaded: only the game's own beheadings are told");
+				SKSE::log::info("Dismembering Framework is {}", on ? "loaded: bodies are checked for severed limbs through its script" : "not loaded");
+				return on;
+			}();
+			return loaded;
+		}
+
+		// Heads are not Dismembering Framework's business: its packs sever calves and forearms, and it leaves the head to
+		// Next-Gen Decapitations (asked on two bodies in play: the framework answered "no head" for one this mod had beheaded).
+		bool NextGenDecapitationsLoaded()
+		{
+			static const bool loaded = [] {
+				const bool on = ::GetModuleHandleW(L"NextGenDecapitations.dll") != nullptr;
+				SKSE::log::info("Next-Gen Decapitations is {}", on ? "loaded: bodies are checked for beheading through its script" : "not loaded: only the game's own beheadings are told");
 				return on;
 			}();
 			return loaded;
@@ -333,13 +345,14 @@ namespace BSM::Tracker
 				if (const auto* limbs = actor->extraList.GetByType<RE::ExtraDismemberedLimbs>(); limbs && limbs->limbs != 0) {
 					RecordLimb(c.id, (limbs->limbs & (1u << 1)) != 0);
 				}
-				if (DismemberingFrameworkLoaded()) {
-					if (auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton()) {
+				if (auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton()) {
+					if (DismemberingFrameworkLoaded()) {
 						RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> any{ new LimbAnswer(c.id, false) };
-						RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> head{ new LimbAnswer(c.id, true) };
 						vm->DispatchStaticCall("DismemberingFramework", "IsDismembered", RE::MakeFunctionArguments(static_cast<RE::Actor*>(actor)), any);
-						vm->DispatchStaticCall("DismemberingFramework", "IsDismemberedNode",
-							RE::MakeFunctionArguments(static_cast<RE::Actor*>(actor), RE::BSFixedString("NPC Head [Head]")), head);
+					}
+					if (NextGenDecapitationsLoaded()) {
+						RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> head{ new LimbAnswer(c.id, true) };
+						vm->DispatchStaticCall("NGDecapitations", "IsDecapitated", RE::MakeFunctionArguments(static_cast<RE::Actor*>(actor)), head);
 					}
 				}
 				if (++c.tries < 2) {

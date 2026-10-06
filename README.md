@@ -71,8 +71,8 @@ None of these is required; each is picked up when present.
   is told by its name, with whose blows did it when one landed just before; one they already had is told as brought
   into the fight. Another injury mod works too if its injury effects carry a keyword: add that keyword's editor id to
   `sInjuryKeywords` in the ini.
-- **Dismemberment** - [Dismembering Framework](https://www.nexusmods.com/skyrimspecialedition/mods/126203), and the
-  game's own beheadings. Told with the kill: who beheaded whom, who severed a limb.
+- **Dismemberment** - [Dismembering Framework](https://www.nexusmods.com/skyrimspecialedition/mods/126203) for severed
+  limbs, Next-Gen Decapitations for heads, and the game's own beheadings. Told with the kill: who beheaded whom, who severed a limb.
 
 ## Settings
 
