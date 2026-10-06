@@ -32,6 +32,10 @@ namespace BSM
 	// One neutral paragraph for the whole battle (the remembered event).
 	[[nodiscard]] std::string BuildMemory(const Battle& a_battle, const NarrativeOptions& a_opt);
 
+	// How long a battle lasted, as told: seconds up to a minute, whole minutes up to five, the nearest five minutes up
+	// to an hour, the nearest half hour beyond ("42 seconds", "3 minutes", "about 25 minutes", "about 1.5 hours").
+	[[nodiscard]] std::string DurationText(double a_seconds);
+
 	// The summary as plain text, for logs and debugging.
 	[[nodiscard]] std::string SummaryText(const Summary& a_summary);
 

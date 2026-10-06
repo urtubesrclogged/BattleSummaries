@@ -74,15 +74,6 @@ namespace BSM
 			return a_opt.showNumbers ? std::format(" (about {} points)", static_cast<int>(std::lround(a_amount))) : std::string();
 		}
 
-		std::string Duration(const Battle& a_b)
-		{
-			if (a_b.Ongoing()) return {};
-			const double s = a_b.endedAt - a_b.startedAt;
-			if (s < 20.0) return "over in moments";
-			if (s < 50.0) return "a short fight of well under a minute";
-			if (s < 100.0) return "a fight of about a minute";
-			return std::format("a long fight of about {} minutes", static_cast<int>(std::lround(s / 60.0)));
-		}
 
 		std::string Wounds(const Participant& a_p, const NarrativeOptions& a_opt)
 		{
@@ -400,7 +391,7 @@ namespace BSM
 			const auto               party = OnSide(a_b, Side::kPlayer), enemies = OnSide(a_b, Side::kEnemy), others = OnSide(a_b, Side::kOther);
 			const std::string        where = a_b.location.empty() ? std::string() : std::format(" at {}", a_b.location);
 			if (a_b.Ongoing()) out.push_back(std::format("A battle is being fought{} right now.", where));
-			else out.push_back(std::format("A battle was fought{}: {}.", where, Duration(a_b)));
+			else out.push_back(std::format("A battle was fought{}. It lasted {}.", where, DurationText(a_b.endedAt - a_b.startedAt)));
 
 			if (!party.empty() && !enemies.empty()) out.push_back(std::format("{} fought against {}.", Grouped(party), Grouped(enemies)));
 			else if (!enemies.empty()) out.push_back(std::format("The enemies were {}.", Grouped(enemies)));
@@ -470,6 +461,23 @@ namespace BSM
 			}
 		}
 		return s;
+	}
+
+	std::string DurationText(double a_seconds)
+	{
+		if (a_seconds < 60.0) {
+			const int s = std::max(1, static_cast<int>(std::lround(a_seconds)));
+			if (s < 60) return s == 1 ? std::string("1 second") : std::format("{} seconds", s);
+		}
+		const double minutes = a_seconds / 60.0;
+		if (minutes < 5.0) {
+			const int m = std::max(1, static_cast<int>(std::lround(minutes)));
+			if (m < 5) return m == 1 ? std::string("about 1 minute") : std::format("about {} minutes", m);
+		}
+		if (minutes <= 60.0) return std::format("about {} minutes", std::max(5, static_cast<int>(std::lround(minutes / 5.0)) * 5));
+		const int halves = std::max(2, static_cast<int>(std::lround(minutes / 30.0)));  // half hours
+		if (halves == 2) return "about 1 hour";
+		return halves % 2 == 0 ? std::format("about {} hours", halves / 2) : std::format("about {}.5 hours", halves / 2);
 	}
 
 	std::string SummaryText(const Summary& a_r)

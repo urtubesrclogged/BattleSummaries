@@ -333,6 +333,28 @@ namespace
 		Check(Significant(b, 9, 900.0), "an injury is worth remembering", memory);
 	}
 
+	void TestDuration()
+	{
+		const auto is = [](double a_s, const char* a_want) { Check(DurationText(a_s) == a_want, a_want, DurationText(a_s)); };
+		is(0.2, "1 second");
+		is(42.4, "42 seconds");
+		is(59.4, "59 seconds");
+		is(59.8, "about 1 minute");
+		is(60, "about 1 minute");
+		is(170, "about 3 minutes");
+		is(285, "about 5 minutes");
+		is(300, "about 5 minutes");
+		is(440, "about 5 minutes");
+		is(460, "about 10 minutes");
+		is(1560, "about 25 minutes");
+		is(3600, "about 60 minutes");
+		is(3700, "about 1 hour");
+		is(5200, "about 1.5 hours");
+		is(7300, "about 2 hours");
+		const auto lydia = SummaryText(BuildSummary(Rescue(), kLydia, "Lydia", {}));
+		Check(Has(lydia, "A battle was fought at Bleak Falls Barrow. It lasted 28 seconds."), "the battle's length is told", lydia);
+	}
+
 	void TestEdges()
 	{
 		Battle empty;
@@ -375,6 +397,7 @@ int main()
 	TestWildlifeAroundAFight();
 	TestKillCreditFollowsTheFinalBlow();
 	TestInjuriesAndDismemberment();
+	TestDuration();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);
 	if (std::getenv("BSM_SHOW")) {

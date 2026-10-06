@@ -9,6 +9,8 @@
 - **Beheadings and severed limbs.** The game's own beheadings, and what Dismembering Framework does when it is
   installed, are told with the kill ("Lydia beheaded Bandit Chief."). Neither mod is required.
 - Both can be switched off in the ini (`bInjuries`, `bDismemberment`).
+- **How long the battle lasted** is told as a figure: seconds up to a minute, minutes up to five, the nearest five
+  minutes up to an hour, the nearest half hour beyond ("It lasted 42 seconds.", "It lasted about 25 minutes.").
 
 ## 1.0.2
 
