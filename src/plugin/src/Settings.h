@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
 namespace BSM::Settings
 {
 	struct Data
@@ -18,6 +21,11 @@ namespace BSM::Settings
 		bool  rememberEvent{ true };    // register one persistent SkyrimNet event per significant battle
 		int   minEnemies{ 3 };
 		float minSeconds{ 30.0f };
+
+		// what other mods add
+		bool                     injuries{ true };       // tell injuries from injury mods
+		std::vector<std::string> injuryKeywords{ "MAG_MagicInjurySpell", "WCT_Injury_Keyword" };  // Blade and Blunt, Wildcat
+		bool                     dismemberment{ true };  // tell beheadings and severed limbs
 
 		bool verbose{ false };
 	};

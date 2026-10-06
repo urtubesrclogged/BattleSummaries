@@ -288,6 +288,51 @@ namespace
 		Check(Has(hero, "Kaira took no damage worth the name and dealt no damage to anyone."), "a healer dealt no damage", hero);
 	}
 
+	// Injury mods (Blade and Blunt, Wildcat) and dismemberment (Dismembering Framework, the game's own beheading).
+	void TestInjuriesAndDismemberment()
+	{
+		Battle b;
+		b.startedAt = 0;
+		b.Join(Info(kHero, "Kaira", Side::kPlayer, 200));
+		b.Join(Info(kLydia, "Lydia", Side::kPlayer, 300));
+		b.Join(Info(kChief, "Bandit Chief", Side::kEnemy, 400));
+		b.Join(Info(kBandit1, "Bandit", Side::kEnemy, 100));
+		b.Join(Info(kBandit2, "Bandit", Side::kEnemy, 100));
+		b.Injury(kHero, "Minor Injury", true, 0);  // had it before the fight
+		b.Damage(kLydia, kChief, 60, 0.8f, 2);
+		b.Injury(kLydia, "Leg Injury", false, 3);
+		b.Injury(kLydia, "Leg Injury", false, 4);  // seen again: told once
+		b.Damage(kHero, kBandit1, 20, 0.9f, 5);
+		b.Injury(kHero, "Major Injury", false, 30);  // long after the last blow: nobody named
+		b.Damage(kChief, kLydia, 400, 0.0f, 31);
+		b.Death(kChief, kLydia, 31);
+		b.Dismember(kChief, true);
+		b.Damage(kBandit1, kHero, 100, 0.0f, 32);
+		b.Death(kBandit1, kHero, 32);
+		b.Dismember(kBandit1, false);
+		b.Damage(kBandit2, kHero, 100, 0.0f, 33);
+		b.Death(kBandit2, kHero, 33);
+		b.Dismember(kBandit2, false);
+		b.Dismember(kLydia, true);  // the living are not dismembered
+		b.endedAt = 40;
+
+		const auto lydia = SummaryText(BuildSummary(b, kLydia, "Lydia", {}));
+		Check(Has(lydia, "Lydia was injured in this fight and still carries it: Leg Injury (dealt by Bandit Chief)."), "a new injury, once, with its dealer", lydia);
+		Check(Has(lydia, "Lydia beheaded Bandit Chief."), "a beheading is credited to the killer", lydia);
+		Check(Has(lydia, "Kaira dismembered Bandit x2, severing a limb."), "severed limbs, grouped per killer", lydia);
+		Check(Has(lydia, "Kaira: took only light wounds; was never near death; was injured (Major Injury); killed 2 of the other side."), "a companion's injury", lydia);
+		Check(!b.Find(kLydia)->dismembered, "only the dead are dismembered", lydia);
+
+		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", {}));
+		Check(Has(hero, "Kaira went into this fight already carrying: Minor Injury."), "an injury brought into the fight", hero);
+		Check(Has(hero, "Kaira was injured in this fight and still carries it: Major Injury."), "an injury with no blow near it names nobody", hero);
+		Check(!Has(hero, "None of them was seriously hurt"), "an injury makes it more than an easy fight", hero);
+
+		const auto memory = BuildMemory(b, {});
+		Check(Has(memory, "Lydia came out of it injured: Leg Injury (dealt by Bandit Chief).") && Has(memory, "Lydia beheaded Bandit Chief."), "both are remembered", memory);
+		Check(Significant(b, 9, 900.0), "an injury is worth remembering", memory);
+	}
+
 	void TestEdges()
 	{
 		Battle empty;
@@ -329,6 +374,7 @@ int main()
 	TestBigFightAndBystanders();
 	TestWildlifeAroundAFight();
 	TestKillCreditFollowsTheFinalBlow();
+	TestInjuriesAndDismemberment();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);
 	if (std::getenv("BSM_SHOW")) {

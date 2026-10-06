@@ -16,6 +16,7 @@ those raw events, from that NPC's own point of view:
 - harmful magic put on them and by whom (burned, frozen, shocked, poisoned, slowed, paralyzed, drained, ...)
 - help given to them and by whom (healing, magical armor, wards, resistances, courage, ...)
 - kills per fighter, the player's set apart from the NPC's own
+- injuries from injury mods, and beheadings and severed limbs (see "Other mods")
 - one paragraph summing up the whole battle, remembered as a SkyrimNet event
 
 NPCs are told they may feel anything about the battle that fits their character, but must not deny or reverse what
@@ -60,6 +61,18 @@ No extra LLM calls are made: the summary is built from what the game recorded.
 Amounts are told in words ("took solid wounds", "dealt most of their side's damage") because language models recite
 any figure they are given. Long lists of names are cut short, and an easy fight is told in a few lines.
 
+## Other mods
+
+None of these is required; each is picked up when present.
+
+- **Injuries** - [Blade and Blunt](https://www.nexusmods.com/skyrimspecialedition/mods/34549) and
+  [Wildcat](https://www.nexusmods.com/skyrimspecialedition/mods/1368). An injury a fighter picks up during the battle
+  is told by its name, with whose blows did it when one landed just before; one they already had is told as brought
+  into the fight. Another injury mod works too if its injury effects carry a keyword: add that keyword's editor id to
+  `sInjuryKeywords` in the ini.
+- **Dismemberment** - [Dismembering Framework](https://www.nexusmods.com/skyrimspecialedition/mods/126203), and the
+  game's own beheadings. Told with the kill: who beheaded whom, who severed a limb.
+
 ## Settings
 
 `SKSE/Plugins/BattleSummaries.ini`, read at game start:
@@ -78,6 +91,9 @@ any figure they are given. Long lists of names are cut short, and an easy fight 
 | `iMaxEffectsPerList` | 6 | Most magic effects listed per fighter |
 | `[Memory] bRememberBattles` | true | Register a remembered SkyrimNet event per battle worth remembering |
 | `iMinEnemies` / `fMinSeconds` | 3 / 30 | What makes a battle worth remembering when nobody was in danger |
+| `[OtherMods] bInjuries` | true | Tell injuries from injury mods |
+| `sInjuryKeywords` | Blade and Blunt's, Wildcat's | Effects carrying one of these keywords (editor ids) are injuries |
+| `bDismemberment` | true | Tell beheadings and severed limbs |
 | `[Debug] bVerboseLog` | false | One log line per damage, death, bleedout, effect and heal |
 
 ## Performance

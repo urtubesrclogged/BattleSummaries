@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.0
+
+- **Injuries from injury mods.** A fighter who picks up an injury during the battle is told so, with whose blows did it
+  when one landed just before ("was injured in this fight and still carries it: Leg Injury (dealt by Bandit Chief)");
+  one they already had is told as brought into the fight. Works out of the box with Blade and Blunt and Wildcat. Any
+  other injury mod that marks its injuries with a keyword can be added in the ini (`[OtherMods] sInjuryKeywords`).
+- **Beheadings and severed limbs.** The game's own beheadings, and what Dismembering Framework does when it is
+  installed, are told with the kill ("Lydia beheaded Bandit Chief."). Neither mod is required.
+- Both can be switched off in the ini (`bInjuries`, `bDismemberment`).
+
 ## 1.0.2
 
 - **Kills are credited to whoever dealt the final blow.** The game's own death report names the player for many kills

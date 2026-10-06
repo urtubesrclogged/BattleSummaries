@@ -145,6 +145,26 @@ namespace BSM
 		}
 	}
 
+	void Battle::Injury(ActorId a_id, const std::string& a_name, bool a_carried, double a_now)
+	{
+		auto* p = Find(a_id);
+		if (!p || a_name.empty()) return;
+		for (const auto& i : p->injuries) {
+			if (i.name == a_name) return;
+		}
+		ActorId by = 0;
+		if (!a_carried && p->lastAttacker != 0 && a_now - p->lastAttackedAt <= kAttackerMemory) by = p->lastAttacker;
+		p->injuries.push_back({ a_name, by, a_carried });
+	}
+
+	void Battle::Dismember(ActorId a_id, bool a_beheaded)
+	{
+		auto* p = Find(a_id);
+		if (!p || !p->dead) return;
+		p->dismembered = true;
+		if (a_beheaded) p->beheaded = true;
+	}
+
 	void Battle::Down(ActorId a_id, double a_now)
 	{
 		auto* p = Find(a_id);

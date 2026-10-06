@@ -22,7 +22,7 @@
   "languages": [
     "en"
   ],
-  "version": "1.0.2",
-  "changelog": "Kills are credited to whoever dealt the final blow (followers' kills used to go to the player). The log now shows whether SkyrimNet accepted the decorator and each remembered event. When updating, replace the old version rather than merging into it.",
+  "version": "1.1.0",
+  "changelog": "Injuries from injury mods (Blade and Blunt, Wildcat; others through the ini) and beheadings and severed limbs (the game's own, and Dismembering Framework's) are now part of the summary.",
   "min_skyrimnet_version": "0.25.0"
 }

@@ -246,6 +246,44 @@ namespace BSM
 			return s;
 		}
 
+		// "Leg Injury (dealt by Bandit Chief) and Head Injury"; a_carried picks those brought into the battle
+		std::string Injuries(const Battle& a_b, const Participant& a_p, bool a_carried, bool a_withDealer = true)
+		{
+			std::vector<std::string> items;
+			for (const auto& i : a_p.injuries) {
+				if (i.carried != a_carried) continue;
+				items.push_back(a_withDealer && i.by != 0 ? std::format("{} (dealt by {})", i.name, NameOf(a_b, i.by)) : i.name);
+			}
+			return JoinList(items);
+		}
+
+		// Bodies that lost a head or a limb, per killer: "Lydia beheaded Bandit Chief."
+		std::vector<std::string> Maimings(const Battle& a_b)
+		{
+			struct Group
+			{
+				ActorId                         killer;
+				bool                            beheaded;
+				std::vector<const Participant*> victims;
+			};
+			std::vector<Group> groups;
+			for (const auto& p : a_b.participants) {
+				if (!p.dead || !p.dismembered || !a_b.Involved(p)) continue;
+				const auto it = std::ranges::find_if(groups, [&](const Group& g) { return g.killer == p.killer && g.beheaded == p.beheaded; });
+				if (it == groups.end()) groups.push_back({ p.killer, p.beheaded, { &p } });
+				else it->victims.push_back(&p);
+			}
+			std::vector<std::string> out;
+			for (const auto& g : groups) {
+				if (out.size() >= 4) break;  // a slaughter needs no full list
+				const auto who = Grouped(g.victims);
+				if (g.killer == 0) out.push_back(g.beheaded ? std::format("{} lost their head in the fighting.", who) : std::format("{} lost a limb in the fighting.", who));
+				else if (g.beheaded) out.push_back(std::format("{} beheaded {}.", CreditName(a_b, g.killer), who));
+				else out.push_back(std::format("{} dismembered {}, severing a limb.", CreditName(a_b, g.killer), who));
+			}
+			return out;
+		}
+
 		int EnemyKills(const Battle& a_b, const Participant& a_p, Side a_foes, std::vector<const Participant*>* a_out = nullptr)
 		{
 			int n = 0;
@@ -298,6 +336,10 @@ namespace BSM
 				out.push_back(std::format("{} survived that without anyone's rescue.", n));
 			}
 
+			if (const auto old = Injuries(a_b, a_p, true); !old.empty()) out.push_back(std::format("{} went into this fight already carrying: {}.", n, old));
+			if (const auto hurt = Injuries(a_b, a_p, false); !hurt.empty() && !a_p.dead) {
+				out.push_back(std::format("{} was injured in this fight and still carries it: {}.", n, hurt));
+			}
 			if (const auto bad = Effects(a_b, a_p, true, a_opt.maxEffects); !bad.empty()) out.push_back(std::format("{} suffered: {}.", n, bad));
 			if (const auto good = Effects(a_b, a_p, false, a_opt.maxEffects); !good.empty()) out.push_back(std::format("{} was helped by: {}.", n, good));
 
@@ -334,6 +376,7 @@ namespace BSM
 			} else if (a_p.startHealthPct < a_b.nearDeathPct) {
 				bits.push_back("went in already close to death from earlier wounds");
 			} else bits.push_back("was never near death");
+			if (const auto hurt = Injuries(a_b, a_p, false, false); !hurt.empty() && !a_p.dead) bits.push_back(std::format("was injured ({})", hurt));
 			const int kills = EnemyKills(a_b, a_p, foes);
 			bits.push_back(kills == 0 ? std::string("killed none of the other side") : std::format("killed {} of the other side", kills));
 			std::string line = a_p.info.name + ": ";
@@ -346,6 +389,7 @@ namespace BSM
 		{
 			for (const auto* p : OnSide(a_b, a_side)) {
 				if (p->dead || p->WasCritical() || p->damageTaken >= 0.25f * p->info.maxHealth || p->startHealthPct < a_b.nearDeathPct) return false;
+				if (std::ranges::any_of(p->injuries, [](const InjuryNote& i) { return !i.carried; })) return false;
 			}
 			return true;
 		}
@@ -367,6 +411,7 @@ namespace BSM
 			for (const auto* p : party) {
 				if (p->dead) out.push_back(std::format("{} was killed by {}.", p->info.name, CreditName(a_b, p->killer)));
 			}
+			for (auto& m : Maimings(a_b)) out.push_back(std::move(m));
 			return out;
 		}
 	}
@@ -412,7 +457,9 @@ namespace BSM
 		};
 		for (const auto& l : General(a_b)) add(l);
 		for (const auto* p : OnSide(a_b, Side::kPlayer)) {
-			if (p->dead || !p->WasCritical()) continue;
+			if (p->dead) continue;
+			if (const auto hurt = Injuries(a_b, *p, false); !hurt.empty()) add(std::format("{} came out of it injured: {}.", p->info.name, hurt));
+			if (!p->WasCritical()) continue;
 			const auto        r = FindRescue(a_b, *p, a_opt);
 			const std::string brink = Brink(a_b, *p);
 			if (!r.saviors.empty()) {
@@ -446,6 +493,7 @@ namespace BSM
 		if (a_b.Count(Side::kPlayer) == 0 || a_b.Count(Side::kEnemy) == 0) return false;  // nothing the player's side fought
 		for (const auto* p : OnSide(a_b, Side::kPlayer)) {
 			if (p->dead || p->WasCritical()) return true;
+			if (std::ranges::any_of(p->injuries, [](const InjuryNote& i) { return !i.carried; })) return true;
 		}
 		if (a_b.Count(Side::kEnemy) >= a_minEnemies) return true;
 		return !a_b.Ongoing() && a_b.endedAt - a_b.startedAt >= a_minSeconds;

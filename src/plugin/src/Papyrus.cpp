@@ -18,7 +18,7 @@ namespace BSM
 		void        ResetPerformance(Tag*) { Perf::Reset(); }
 		std::string GetLastMemory(Tag*) { return Tracker::LastMemory(); }
 		void        EndBattleNow(Tag*) { Tracker::EndNow(); }
-		void        ReloadSettings(Tag*) { Settings::Load(); }
+		void        ReloadSettings(Tag*) { SKSE::GetTaskInterface()->AddTask([] { Settings::Load(); }); }  // on the main thread, which reads them
 		void        SetVerboseLog(Tag*, bool a_on) { Settings::SetVerbose(a_on); }
 		std::string DebugFakeRescue(Tag*, RE::Actor* a_victim) { return Tracker::FakeRescue(a_victim); }
 		void ReportRegistered(Tag*, std::int32_t a_result)

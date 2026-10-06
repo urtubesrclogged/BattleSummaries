@@ -1,5 +1,7 @@
 #include "Effects.h"
 
+#include "Settings.h"
+
 namespace BSM::Effects
 {
 	namespace
@@ -54,6 +56,29 @@ namespace BSM::Effects
 		if (!a_effect) return false;
 		const auto& d = a_effect->data;
 		return d.archetype == Arch::kValueModifier && d.primaryAV == AV::kHealth && d.flags.none(Flag::kDetrimental, Flag::kHostile, Flag::kRecover);
+	}
+
+	bool IsInjury(const RE::EffectSetting* a_effect)
+	{
+		const auto& cfg = Settings::Get();
+		if (!a_effect || !cfg.injuries) return false;
+		for (const auto& kw : cfg.injuryKeywords) {
+			if (a_effect->HasKeywordString(kw)) return true;
+		}
+		return false;
+	}
+
+	std::string InjuryName(const RE::EffectSetting* a_effect, const RE::MagicItem* a_source)
+	{
+		const auto text = [](const char* a_s) { return a_s ? std::string(a_s) : std::string(); };
+		const auto own = text(a_effect ? a_effect->GetFullName() : nullptr);
+		const auto from = text(a_source ? a_source->GetFullName() : nullptr);
+		const auto saysInjury = [](std::string a_s) {
+			std::ranges::transform(a_s, a_s.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			return a_s.find("injur") != std::string::npos || a_s.find("wound") != std::string::npos;
+		};
+		if (saysInjury(own) || from.empty()) return own.empty() ? std::string("an injury") : own;
+		return from;
 	}
 
 	std::optional<Kind> Classify(const RE::EffectSetting* a_effect, const RE::MagicItem* a_source, bool a_selfCast)

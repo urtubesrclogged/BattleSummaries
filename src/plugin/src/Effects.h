@@ -17,4 +17,11 @@ namespace BSM::Effects
 	[[nodiscard]] std::optional<Kind> Classify(const RE::EffectSetting* a_effect, const RE::MagicItem* a_source, bool a_selfCast);
 
 	[[nodiscard]] bool RestoresHealth(const RE::EffectSetting* a_effect);
+
+	// An injury from an injury mod: the effect carries one of the keywords listed in the ini. Main thread only.
+	[[nodiscard]] bool IsInjury(const RE::EffectSetting* a_effect);
+
+	// What to call it: the effect's own name when that says "injury" ("Leg Injury"), else its spell's ("Major Injury"
+	// on an effect named "Reduced Health").
+	[[nodiscard]] std::string InjuryName(const RE::EffectSetting* a_effect, const RE::MagicItem* a_source);
 }

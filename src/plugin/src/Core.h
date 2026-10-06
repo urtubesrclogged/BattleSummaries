@@ -41,6 +41,14 @@ namespace BSM
 		int         count{ 0 };
 	};
 
+	// A lasting injury an injury mod put on a participant ("Leg Injury", "Major Injury").
+	struct InjuryNote
+	{
+		std::string name;
+		ActorId     by{ 0 };          // whose blows did it, when one landed just before; 0 = not known
+		bool        carried{ false };  // they brought it into the battle
+	};
+
 	struct Participant
 	{
 		ActorInfo info;
@@ -73,8 +81,13 @@ namespace BSM
 		ActorId killer{ 0 };
 		double  diedAt{ -1.0 };
 
+		// what a dismemberment mod (or the game's own beheading) did to the body
+		bool dismembered{ false };
+		bool beheaded{ false };
+
 		std::vector<ActorId>    kills;
 		std::vector<EffectNote> effects;
+		std::vector<InjuryNote> injuries;
 
 		// Fought the player's side directly (traded a blow, a kill or a hostile spell with one of them)...
 		bool engaged{ false };
@@ -113,6 +126,10 @@ namespace BSM
 		void Sample(ActorId a_id, float a_healthPct, double a_now);
 		void Heal(ActorId a_target, ActorId a_healer, float a_amount, const std::string& a_source, double a_now);
 		void Effect(ActorId a_target, ActorId a_by, const std::string& a_label, const std::string& a_source, bool a_hostile);
+		// a_carried: they already had it when they joined
+		void Injury(ActorId a_id, const std::string& a_name, bool a_carried, double a_now);
+		// the dead participant's body lost a limb (a_beheaded: the head)
+		void Dismember(ActorId a_id, bool a_beheaded);
 		void Down(ActorId a_id, double a_now);
 		void Up(ActorId a_id);
 		void Death(ActorId a_victim, ActorId a_killer, double a_now);

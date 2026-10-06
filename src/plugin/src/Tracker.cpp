@@ -9,6 +9,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include <Windows.h>
+
 namespace BSM::Tracker
 {
 	namespace
@@ -30,7 +32,8 @@ namespace BSM::Tracker
 				kDamage,    // a took amount from b; pct = a's health share afterwards
 				kDeath,     // a died, killed by b
 				kBleedout,  // a went down
-				kEffect     // magic effect `effect` from b took hold on a
+				kEffect,    // magic effect `effect` from b took hold on a
+				kLimb       // a's body lost a limb (amount 2: the head), as another mod's script answered
 			};
 			Type       type;
 			ActorId    a{ 0 };
@@ -73,6 +76,7 @@ namespace BSM::Tracker
 			float           lastHealth{ -1.0f };
 			float           damageSince{ 0.0f };
 			float           pendingLoss{ 0.0f };  // health lost last tick that no damage report explained (yet)
+			std::set<RE::FormID> injuriesSeen;    // injury effects found on them so far, the ones they came with included
 		};
 		std::unordered_map<ActorId, Live> g_live;
 
@@ -83,6 +87,16 @@ namespace BSM::Tracker
 			double      at;
 		};
 		std::vector<RecentHeal> g_recentHeals;
+
+		// bodies to look at a moment after the death: severing a limb takes the game (or the mod doing it) a frame or two
+		struct LimbCheck
+		{
+			ActorId id;
+			double  at;
+			int     tries;
+		};
+		std::vector<LimbCheck> g_limbChecks;
+		double                 g_injuryScanAt{ 0.0 };
 
 		double g_quiet{ 0.0 };
 		double g_lastTick{ 0.0 };
@@ -233,6 +247,114 @@ namespace BSM::Tracker
 			return out;
 		}
 
+		// ---- injuries from injury mods (caller holds g_lock, main thread) ----
+		// Found by looking at the fighter's effects, not from the magic-effect event: Blade and Blunt's injuries are
+		// abilities, which are added without one. a_joining: what they have now, they came with (unless it is seconds old:
+		// a battle can begin with the very blow that injured them).
+		void ScanInjuries(RE::Actor* a_actor, bool a_joining, double a_now)
+		{
+			const auto& cfg = Settings::Get();
+			if (!g_current || !a_actor || !cfg.injuries || cfg.injuryKeywords.empty()) return;
+			const auto id = a_actor->GetFormID();
+			auto&      live = g_live[id];
+			ForEachEffect(a_actor, [&](RE::ActiveEffect* ae) {
+				if (ae->flags.any(RE::ActiveEffect::Flag::kInactive, RE::ActiveEffect::Flag::kDispelled)) return;
+				const auto* base = ae->GetBaseObject();
+				if (!Effects::IsInjury(base) || !live.injuriesSeen.insert(base->GetFormID()).second) return;
+				const bool carried = a_joining && ae->elapsedSeconds > 2.0f;
+				const auto name = Effects::InjuryName(base, ae->spell);
+				g_current->Injury(id, name, carried, a_now);
+				SKSE::log::info("Battle {}: {:08X} {} {}", g_current->id, id, carried ? "came into it with" : "was injured:", name);
+			});
+		}
+
+		// ---- beheadings and severed limbs (main thread) ----
+		void Push(Report a_r);
+
+		// the answer of DismemberingFramework.IsDismembered / IsDismemberedNode, given on the script thread
+		class LimbAnswer final : public RE::BSScript::IStackCallbackFunctor
+		{
+		public:
+			LimbAnswer(ActorId a_id, bool a_head) :
+				id(a_id), head(a_head) {}
+			void operator()(RE::BSScript::Variable a_result) override
+			{
+				if (a_result.IsBool() && a_result.GetBool()) Push({ Report::Type::kLimb, id, 0, head ? 2.0f : 1.0f });
+			}
+			bool CanSave() const override { return false; }
+			void SetObject(const RE::BSTSmartPointer<RE::BSScript::Object>&) override {}
+
+		private:
+			ActorId id;
+			bool    head;
+		};
+
+		bool DismemberingFrameworkLoaded()
+		{
+			static const bool loaded = [] {
+				const bool on = ::GetModuleHandleW(L"DismemberingFramework.dll") != nullptr;
+				SKSE::log::info("Dismembering Framework is {}", on ? "loaded: bodies are checked for severed limbs through its script" : "not loaded: only the game's own beheadings are told");
+				return on;
+			}();
+			return loaded;
+		}
+
+		// caller holds g_lock
+		void RecordLimb(ActorId a_id, bool a_head)
+		{
+			const auto apply = [&](Battle& a_b) {
+				auto* p = a_b.Find(a_id);
+				if (!p || !p->dead) return false;
+				if (!p->dismembered || (a_head && !p->beheaded)) SKSE::log::info("Battle {}: {} ({:08X}) {}", a_b.id, p->info.name, a_id, a_head ? "was beheaded" : "lost a limb");
+				a_b.Dismember(a_id, a_head);
+				return true;
+			};
+			if (g_current && apply(*g_current)) return;
+			for (auto& b : g_history) {
+				if (apply(b)) return;
+			}
+		}
+
+		// caller holds g_lock
+		void CheckLimbs(double a_now)
+		{
+			if (g_limbChecks.empty()) return;
+			std::vector<LimbCheck> later;
+			for (auto& c : g_limbChecks) {
+				if (a_now < c.at) {
+					later.push_back(c);
+					continue;
+				}
+				auto* actor = Lookup(c.id);
+				if (!actor || !actor->IsDead()) continue;
+				// the game's own record of severed body parts; part 1 is the head
+				if (const auto* limbs = actor->extraList.GetByType<RE::ExtraDismemberedLimbs>(); limbs && limbs->limbs != 0) {
+					RecordLimb(c.id, (limbs->limbs & (1u << 1)) != 0);
+				}
+				if (DismemberingFrameworkLoaded()) {
+					if (auto* vm = RE::BSScript::Internal::VirtualMachine::GetSingleton()) {
+						RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> any{ new LimbAnswer(c.id, false) };
+						RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> head{ new LimbAnswer(c.id, true) };
+						vm->DispatchStaticCall("DismemberingFramework", "IsDismembered", RE::MakeFunctionArguments(static_cast<RE::Actor*>(actor)), any);
+						vm->DispatchStaticCall("DismemberingFramework", "IsDismemberedNode",
+							RE::MakeFunctionArguments(static_cast<RE::Actor*>(actor), RE::BSFixedString("NPC Head [Head]")), head);
+					}
+				}
+				if (++c.tries < 2) {
+					c.at = a_now + 3.0;  // once more: a limb can come off a moment after the death
+					later.push_back(c);
+				}
+			}
+			g_limbChecks.swap(later);
+		}
+
+		void WatchBody(ActorId a_id, double a_now)
+		{
+			if (!Settings::Get().dismemberment) return;
+			if (std::ranges::any_of(g_limbChecks, [&](const LimbCheck& c) { return c.id == a_id; })) return;
+			if (g_limbChecks.size() < 256) g_limbChecks.push_back({ a_id, a_now + 1.0, 0 });
+		}
+
 		// ---- the battle's lifecycle (caller holds g_lock, main thread) ----
 		void Begin(double a_now)
 		{
@@ -268,6 +390,8 @@ namespace BSM::Tracker
 				live.damageSince = 0.0f;
 				live.pendingLoss = 0.0f;
 				SKSE::log::debug("Battle {}: {} ({:08X}) joined, side {}", g_current->id, p.info.name, p.info.id, static_cast<int>(p.info.side));
+				ScanInjuries(a_actor, true, Now());
+				return g_current->Find(a_actor->GetFormID());
 			}
 			return &p;
 		}
@@ -284,6 +408,11 @@ namespace BSM::Tracker
 			g_battleOn = false;
 				g_quiet = 0.0;
 				return;
+			}
+			// one last look for injuries, before the account is written
+			for (std::size_t i = 0; i < b.participants.size(); ++i) {
+				if (b.participants[i].dead) continue;
+				if (const auto ref = g_live[b.participants[i].info.id].handle.get()) ScanInjuries(ref.get(), false, Now());
 			}
 			b.endedAt = std::max(a_foughtUntil, b.startedAt);
 			b.endedGameHours = GameHours();
@@ -376,6 +505,10 @@ namespace BSM::Tracker
 
 		void Handle(const Report& a_r)
 		{
+			if (a_r.type == Report::Type::kLimb) {
+				RecordLimb(a_r.a, a_r.amount > 1.5f);
+				return;
+			}
 			auto* pc = RE::PlayerCharacter::GetSingleton();
 			auto* a = Lookup(a_r.a);
 			auto* b = Lookup(a_r.b);
@@ -421,6 +554,7 @@ namespace BSM::Tracker
 				JoinPair(a, b, pc);
 				if (!InBattle(a)) return;
 				g_current->Death(a_r.a, a_r.b, a_r.at);
+				WatchBody(a_r.a, a_r.at);
 				g_quiet = 0.0;
 				SKSE::log::debug("death: {:08X} killed by {:08X}", a_r.a, a_r.b);
 				break;
@@ -439,6 +573,7 @@ namespace BSM::Tracker
 				if (b && b != a && b->IsDead()) return;
 				auto* effect = RE::TESForm::LookupByID<RE::EffectSetting>(a_r.effect);
 				if (!effect) return;
+				if (Effects::IsInjury(effect)) return;  // told as an injury (ScanInjuries), not as magic someone cast
 				const auto on = FindOnTarget(a, effect, a_r.b);
 				const auto kind = Effects::Classify(effect, on.item, b == a);
 				if (!kind) return;
@@ -530,6 +665,9 @@ namespace BSM::Tracker
 				if (ui->GameIsPaused()) return false;
 
 				Drain();
+				CheckLimbs(now);
+				const bool scanInjuries = g_current && now >= g_injuryScanAt;
+				if (scanInjuries) g_injuryScanAt = now + 2.0;
 				if (!g_current && pc->IsInCombat()) {
 					Begin(now);
 					Join(pc);
@@ -548,8 +686,10 @@ namespace BSM::Tracker
 						if (g_current->participants[i].dead) continue;
 						if (actor->IsDead()) {
 							g_current->Death(id, 0, now);  // a death the game did not report
+							WatchBody(id, now);
 							continue;
 						}
+						if (scanInjuries) ScanInjuries(actor, false, now);
 
 						const float hp = HealthOf(actor), max = MaxHealthOf(actor);
 						g_current->participants[i].info.maxHealth = max;
@@ -824,6 +964,7 @@ namespace BSM::Tracker
 		g_extra.clear();
 		g_live.clear();
 		g_recentHeals.clear();
+		g_limbChecks.clear();
 		g_quiet = 0.0;
 		g_lastMemory.clear();
 	}
@@ -887,6 +1028,9 @@ namespace BSM::Tracker
 				s += std::format(" [{} {:08X} side {}{} taken {:.0f}/{:.0f} dealt {:.0f} healed {:.0f} min {:.0f}% downs {}{}{}]", p.info.name, p.info.id,
 					static_cast<int>(b.EffectiveSide(p)), b.Involved(p) ? (p.engaged ? "" : " (at one remove)") : " uninvolved", p.damageTaken, p.info.maxHealth, p.damageDealt, p.healingReceived,
 					p.minHealthPct * 100.0f, p.downs, p.nearDeath ? " neardeath" : "", p.dead ? " dead" : "");
+				if (p.beheaded) s.insert(s.size() - 1, " beheaded");
+				else if (p.dismembered) s.insert(s.size() - 1, " dismembered");
+				for (const auto& i : p.injuries) s.insert(s.size() - 1, std::format(" injury:{}{}", i.name, i.carried ? "(carried)" : ""));
 			}
 		}
 		for (auto& ch : s) {

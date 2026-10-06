@@ -43,12 +43,29 @@ namespace BSM::Settings
 			d.minEnemies = static_cast<int>(ini.GetLongValue("Memory", "iMinEnemies", d.minEnemies));
 			d.minSeconds = static_cast<float>(ini.GetDoubleValue("Memory", "fMinSeconds", d.minSeconds));
 
+			d.injuries = ini.GetBoolValue("OtherMods", "bInjuries", d.injuries);
+			if (const char* list = ini.GetValue("OtherMods", "sInjuryKeywords", nullptr)) {
+				d.injuryKeywords.clear();
+				std::string word;
+				const auto  flush = [&] {
+					if (!word.empty()) d.injuryKeywords.push_back(word);
+					word.clear();
+				};
+				for (const char* c = list; *c; ++c) {
+					if (*c == ',' || *c == ';' || std::isspace(static_cast<unsigned char>(*c))) flush();
+					else word += *c;
+				}
+				flush();
+			}
+			d.dismemberment = ini.GetBoolValue("OtherMods", "bDismemberment", d.dismemberment);
+
 			d.verbose = ini.GetBoolValue("Debug", "bVerboseLog", d.verbose);
 		}
 		d.nearDeathPct = std::clamp(d.nearDeathPct, 0.01f, 0.9f);
 		d.endGraceSeconds = std::clamp(d.endGraceSeconds, 1.0f, 120.0f);
 		g_data = d;
 		SetVerbose(d.verbose);
+		SKSE::log::info("Settings: injuries {} ({} keywords), dismemberment {}", d.injuries, d.injuryKeywords.size(), d.dismemberment);
 		SKSE::log::info("Settings: enabled {}, near death below {:.0f}%, end grace {}s, merge gap {}s, summary for {} game hours, numbers {}, remember {}",
 			d.enabled, d.nearDeathPct * 100.0f, d.endGraceSeconds, d.mergeGapSeconds, d.summaryGameHours, d.showNumbers, d.rememberEvent);
 	}
