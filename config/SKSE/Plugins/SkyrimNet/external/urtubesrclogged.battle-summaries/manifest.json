@@ -23,6 +23,6 @@
     "en"
   ],
   "version": "1.1.0",
-  "changelog": "Injuries from injury mods (Blade and Blunt, Wildcat; others through the ini) and beheadings and severed limbs (the game's own, and Dismembering Framework's) are now part of the summary.",
+  "changelog": "New in the summary: injuries from injury mods (Blade and Blunt, Wildcat; others through the ini), beheadings and severed limbs (Dismembering Framework, Next-Gen Decapitations, the game's own), innocents and allies slain, and how long the battle lasted.",
   "min_skyrimnet_version": "0.25.0"
 }
