@@ -62,6 +62,9 @@ namespace BSM::Effects
 	{
 		const auto& cfg = Settings::Get();
 		if (!a_effect || !cfg.injuries) return false;
+		// both mods hang hidden helper effects on the same keyword ("Injury Message", "Leg Injury - Running"): the
+		// injury is the one the player is shown
+		if (a_effect->data.flags.any(Flag::kHideInUI)) return false;
 		for (const auto& kw : cfg.injuryKeywords) {
 			if (a_effect->HasKeywordString(kw)) return true;
 		}
