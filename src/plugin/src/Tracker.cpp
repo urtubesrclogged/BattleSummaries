@@ -77,6 +77,7 @@ namespace BSM::Tracker
 		{
 			std::set<ActorId> witnesses;
 			bool              remembered{ false };
+			double            closedAt{ 0.0 };  // when the tracker let go of it; the battle's own end is its last blow, which is earlier
 		};
 		std::map<int, Extra> g_extra;
 
@@ -109,6 +110,9 @@ namespace BSM::Tracker
 		double                 g_injuryScanAt{ 0.0 };
 
 		double g_quiet{ 0.0 };
+		// The party is still "in combat" after its battle closed (a follower chasing a deer): no new battle is begun from
+		// that state alone, only from a blow, a death or someone newly entering combat with them.
+		bool   g_stale{ false };
 		double g_lastBlow{ 0.0 };  // the last damage or death in the battle, or the last moment an enemy was still at it
 		double g_lastTick{ 0.0 };
 		int    g_nextId{ 1 };
@@ -385,7 +389,7 @@ namespace BSM::Tracker
 		void Begin(double a_now)
 		{
 			const auto& cfg = Settings::Get();
-			if (!g_history.empty() && a_now - g_history.front().endedAt <= cfg.mergeGapSeconds) {
+			if (!g_history.empty() && a_now - g_extra[g_history.front().id].closedAt <= cfg.mergeGapSeconds) {
 				g_current = std::move(g_history.front());  // the fight flared up again: same battle
 				g_history.pop_front();
 				g_current->endedAt = -1.0;
@@ -433,6 +437,7 @@ namespace BSM::Tracker
 			const bool murder = std::ranges::any_of(b.participants, [&](const Participant& p) { return p.dead && b.Innocent(p); });
 			if (b.participants.size() < 2 || !blows || (b.Count(Side::kEnemy) == 0 && !murder)) {
 				SKSE::log::info("Battle {} came to nothing ({} participants); forgotten", b.id, b.participants.size());
+				g_stale = true;
 				g_current.reset();
 			g_battleOn = false;
 				g_quiet = 0.0;
@@ -448,6 +453,8 @@ namespace BSM::Tracker
 			for (auto& p : b.participants) p.isDown = false;
 
 			auto& extra = g_extra[b.id];
+			extra.closedAt = Now();
+			g_stale = true;
 			extra.witnesses.clear();
 			if (auto* pl = RE::ProcessLists::GetSingleton()) {
 				auto* pc = RE::PlayerCharacter::GetSingleton();
@@ -663,7 +670,7 @@ namespace BSM::Tracker
 			if (!cfg.rememberEvent || g_current) return out;
 			for (auto& b : g_history) {
 				auto& extra = g_extra[b.id];
-				if (extra.remembered || a_now - b.endedAt <= cfg.mergeGapSeconds) continue;
+				if (extra.remembered || a_now - extra.closedAt <= cfg.mergeGapSeconds) continue;
 				extra.remembered = true;
 				if (Significant(b, cfg.minEnemies, cfg.minSeconds)) {
 					out.push_back(BuildMemory(b, { cfg.showNumbers, cfg.maxOthers, cfg.maxEffects }));
@@ -705,7 +712,8 @@ namespace BSM::Tracker
 				CheckLimbs(now);
 				const bool scanInjuries = g_current && now >= g_injuryScanAt;
 				if (scanInjuries) g_injuryScanAt = now + 2.0;
-				if (!g_current && pc->IsInCombat()) {
+				if (!pc->IsInCombat()) g_stale = false;
+				if (!g_current && pc->IsInCombat() && !g_stale) {
 					Begin(now);
 					Join(pc);
 				}
@@ -910,14 +918,17 @@ namespace BSM::Tracker
 				const auto* p = a_b.Find(a_viewer);
 				return p && a_b.Involved(*p);
 			};
-			if (g_current && fought(*g_current)) return &*g_current;
+			// one just begun, with no blow struck yet, has nothing to tell: the last one fought still stands
+			const bool telling = g_current && g_current->participants.size() >= 2 &&
+								 std::ranges::any_of(g_current->participants, [](const Participant& p) { return p.damageTaken > 0.0f || p.dead; });
+			if (telling && fought(*g_current)) return &*g_current;
 			const float hours = GameHours();
 			for (const auto& b : g_history) {
 				if (hours - b.endedGameHours > Settings::Get().summaryGameHours) continue;
 				if (fought(b)) return &b;
 			}
 			// not in any of them: the latest one they stood near
-			if (g_current) {
+			if (telling) {
 				auto* a = Lookup(a_viewer);
 				auto* pc = RE::PlayerCharacter::GetSingleton();
 				if (a && pc && a->GetPosition().GetDistance(pc->GetPosition()) <= Settings::Get().witnessRange) {
@@ -1013,6 +1024,7 @@ namespace BSM::Tracker
 		g_live.clear();
 		g_recentHeals.clear();
 		g_limbChecks.clear();
+		g_stale = false;
 		g_quiet = 0.0;
 		g_lastMemory.clear();
 	}
