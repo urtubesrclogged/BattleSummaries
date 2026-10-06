@@ -280,12 +280,19 @@ namespace
 		b.Damage(kBandit2, kLydia, 300, 0.0f, 5);
 		b.Death(kBandit2, kHero, 5.1);
 		b.Damage(kMage, kLydia, 40, 0.6f, 6);
-		b.Death(kMage, kHero, 20);              // no blow near the death: the game's word stands
-		b.endedAt = 25;
-		Check(b.Find(kLydia)->kills.size() == 2 && b.Find(kHero)->kills.size() == 1, "the one who dealt the final blow made the kill", "");
+		b.Death(kMage, kHero, 20);              // no blow near the death, and the one the game names never struck them
+		b.Join(Info(kChief, "Giant", Side::kEnemy, 600));
+		b.Damage(kChief, kHero, 30, 0.95f, 21);
+		b.Death(kChief, kHero, 30);             // no blow near the death, but the one named did strike them: the game's word stands
+		b.Join(Info(kGuard, "Uthgerd", Side::kPlayer, 180));
+		b.Damage(kGuard, kChief, 180, 0.0f, 22);
+		b.Death(kGuard, kHero, 26);             // felled by the giant, reported late and against the player
+		b.endedAt = 31;
+		Check(b.Find(kLydia)->kills.size() == 3 && b.Find(kHero)->kills.size() == 1, "the one who dealt the final blow made the kill", "");
 		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", {}));
-		Check(Has(hero, "Who killed the enemies: Lydia 2 (Cave Bear x2); Kaira 1 (Cultist)."), "tally by final blow", hero);
-		Check(Has(hero, "Kaira took no damage worth the name and dealt no damage to anyone."), "a healer dealt no damage", hero);
+		Check(Has(hero, "Who killed the enemies: Lydia 3 (Cave Bear x2 and Cultist); Kaira 1 (Giant)."), "tally by final blow", hero);
+		Check(Has(hero, "Uthgerd was killed by Giant.") && !Has(hero, "an ally slain"), "nobody is accused of killing an ally they never struck", hero);
+		Check(Has(hero, "Kaira took no damage worth the name and dealt only a small part of their side's damage."), "a healer is not told as the one who did the fighting", hero);
 	}
 
 	// Injury mods (Blade and Blunt, Wildcat) and dismemberment (Dismembering Framework, the game's own beheading).

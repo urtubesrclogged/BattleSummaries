@@ -206,6 +206,11 @@ namespace BSM
 		// killer; the game's word is used only when no blow was seen just before the death (a kill move, a script).
 		if (v->lastAttacker != 0 && a_now - v->lastAttackedAt <= kFinalBlow) a_killer = v->lastAttacker;
 		else if (a_killer == 0 || a_killer == a_victim) a_killer = RecentAttacker(*v, a_now);
+		else if (!v->damageFrom.contains(a_killer)) {
+			// ...and not even then when the one it names never struck the victim while others did: that is how a follower
+			// felled by a giant came to be told as slain by the player
+			if (const auto struck = RecentAttacker(*v, a_now); struck != 0) a_killer = struck;
+		}
 		v->dead = true;
 		v->isDown = false;
 		v->killer = a_killer;
