@@ -17,10 +17,20 @@ namespace BSM::Tracker
 	{
 		using Clock = std::chrono::steady_clock;
 
-		double Now()
+		double RawNow()
 		{
 			static const auto start = Clock::now();
 			return std::chrono::duration<double>(Clock::now() - start).count();
+		}
+
+		// The battle's clock stands still while the game does (a menu, the console, a loading screen): a battle's length
+		// is told as a figure, and a minute spent in the inventory is not a minute of fighting.
+		std::atomic<double> g_stoodStill{ 0.0 };
+		double              g_lastRaw{ -1.0 };  // main thread
+
+		double Now()
+		{
+			return RawNow() - g_stoodStill.load(std::memory_order_relaxed);
 		}
 
 		// ---- what the game reports, queued where it happens (any thread) ----
@@ -665,6 +675,12 @@ namespace BSM::Tracker
 			auto* ui = RE::UI::GetSingleton();
 			const auto& cfg = Settings::Get();
 			if (!pc || !ui || !cfg.enabled) return false;
+			{
+				const double raw = RawNow();
+				const double step = g_lastRaw >= 0.0 ? raw - g_lastRaw : 0.0;
+				g_lastRaw = raw;
+				if (step > 0.0 && (!pc->Is3DLoaded() || ui->GameIsPaused())) g_stoodStill.store(g_stoodStill.load(std::memory_order_relaxed) + step, std::memory_order_relaxed);
+			}
 			if (!pc->Is3DLoaded()) {
 				// loading: the game re-applies every actor's effects and reports each one; none of it is a battle
 				std::scoped_lock l{ g_queueLock };

@@ -15,7 +15,7 @@
 - **Kill credit, again.** The game also names the player for deaths the player had no part in (a follower felled by a
   giant was told as slain by the player). Its word is now taken only when the one it names struck the victim.
 - **How long the battle lasted** is told as a figure: seconds up to a minute, minutes up to five, the nearest five
-  minutes up to an hour, the nearest half hour beyond ("It lasted 42 seconds.", "It lasted about 25 minutes.").
+  minutes up to an hour, the nearest half hour beyond ("It lasted 42 seconds.", "It lasted about 25 minutes."). Time spent in menus is not counted.
 
 ## 1.0.2
 
