@@ -50,6 +50,7 @@ namespace BSM
 			if (!a_info.name.empty()) p->info.name = a_info.name;
 			if (a_info.maxHealth > 0.0f) p->info.maxHealth = a_info.maxHealth;
 			if (a_info.master != 0) p->info.master = a_info.master;
+			if (a_info.lawful) p->info.lawful = true;
 			// a follower stays a follower through a stray friendly hit; anyone else who turns hostile is an enemy from then on
 			if (p->info.side == Side::kOther || a_info.side == Side::kPlayer) p->info.side = a_info.side;
 			return *p;
@@ -165,6 +166,23 @@ namespace BSM
 		if (a_beheaded) p->beheaded = true;
 	}
 
+	void Battle::Armed(ActorId a_id)
+	{
+		if (auto* p = Find(a_id)) p->armed = true;
+	}
+
+	bool Battle::Innocent(const Participant& a_p) const
+	{
+		if (a_p.info.side == Side::kPlayer || !a_p.info.lawful || a_p.armed || a_p.damageDealt > 0.0f || !a_p.kills.empty()) return false;
+		if (a_p.damageTaken <= 0.0f && !a_p.dead) return false;  // nobody touched them
+		for (const auto& q : participants) {
+			for (const auto& e : q.effects) {
+				if (e.hostile && e.by == a_p.info.id && q.info.id != a_p.info.id) return false;
+			}
+		}
+		return true;
+	}
+
 	void Battle::Down(ActorId a_id, double a_now)
 	{
 		auto* p = Find(a_id);
@@ -201,6 +219,7 @@ namespace BSM
 
 	Side Battle::EffectiveSide(const Participant& a_p) const
 	{
+		if (Innocent(a_p)) return Side::kOther;
 		if (a_p.info.side != Side::kOther) return a_p.info.side;
 		float toPlayerSide = 0.0f, toEnemies = 0.0f;
 		for (const auto& q : participants) {

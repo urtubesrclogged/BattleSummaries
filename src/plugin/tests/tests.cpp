@@ -333,6 +333,50 @@ namespace
 		Check(Significant(b, 9, 900.0), "an injury is worth remembering", memory);
 	}
 
+	// Asked for by the author after a brawl in Whiterun in which a preacher was cut down and counted as an enemy.
+	void TestInnocentsAndAllies()
+	{
+		Battle b;
+		b.startedAt = 0;
+		b.Join(Info(kHero, "Kaira", Side::kPlayer, 200));
+		b.Join(Info(kLydia, "Lydia", Side::kPlayer, 300));
+		b.Join(Info(kGuard, "Whiterun Guard", Side::kEnemy, 250));
+		b.Join(Info(kBandit1, "Heimskr", Side::kEnemy, 75));  // the game calls him hostile once he has been struck
+		b.Join(Info(kBandit2, "Whiterun Guard", Side::kEnemy, 250));
+		b.Join(Info(kMage, "Bandit", Side::kEnemy, 100));
+		for (const auto id : { kGuard, kBandit1, kBandit2 }) b.Find(id)->info.lawful = true;
+		b.Armed(kGuard);
+		b.Damage(kLydia, kGuard, 30, 0.9f, 1);
+		b.Damage(kGuard, kHero, 250, 0.0f, 2);
+		b.Death(kGuard, kHero, 2);
+		b.Damage(kBandit1, kHero, 75, 0.0f, 3);
+		b.Death(kBandit1, kHero, 3);
+		b.Armed(kBandit2);  // swung and missed: a fighter all the same
+		b.Damage(kBandit2, kLydia, 250, 0.0f, 4);
+		b.Death(kBandit2, kLydia, 4);
+		b.Damage(kMage, kHero, 100, 0.0f, 5);  // never drew, but no hold's law covers a bandit
+		b.Death(kMage, kHero, 5);
+		b.Damage(kLydia, kHero, 300, 0.0f, 6);
+		b.Death(kLydia, kHero, 6);
+		b.endedAt = 10;
+
+		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", {}));
+		Check(Has(hero, "Heimskr, an innocent who was not fighting anyone, was killed by Kaira."), "an innocent's death is said outright", hero);
+		Check(Has(hero, "Kaira and Lydia fought against Whiterun Guard x2 and Bandit.") && Has(hero, "All 3 enemies were killed."), "an innocent is not one of the enemies", hero);
+		Check(Has(hero, "Also caught up in it: Heimskr."), "but was caught up in it", hero);
+		Check(Has(hero, "Lydia was killed by Kaira, who was on the same side: an ally slain by their own."), "an ally killed by their own side", hero);
+		Check(Has(hero, "Kaira killed 2 of the 3 who died on the other side"), "the innocent is not one of the killer's enemy kills", hero);
+
+		Battle m;  // nothing but a murder is still something to tell
+		m.Join(Info(kHero, "Kaira", Side::kPlayer, 200));
+		m.Join(Info(kBandit1, "Heimskr", Side::kOther, 75));
+		m.Find(kBandit1)->info.lawful = true;
+		m.Damage(kBandit1, kHero, 75, 0.0f, 1);
+		m.Death(kBandit1, kHero, 1);
+		m.endedAt = 2;
+		Check(Significant(m, 3, 30.0) && Has(BuildMemory(m, {}), "Heimskr, an innocent who was not fighting anyone, was killed by Kaira."), "a murder is remembered", BuildMemory(m, {}));
+	}
+
 	void TestDuration()
 	{
 		const auto is = [](double a_s, const char* a_want) { Check(DurationText(a_s) == a_want, a_want, DurationText(a_s)); };
@@ -397,6 +441,7 @@ int main()
 	TestWildlifeAroundAFight();
 	TestKillCreditFollowsTheFinalBlow();
 	TestInjuriesAndDismemberment();
+	TestInnocentsAndAllies();
 	TestDuration();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);

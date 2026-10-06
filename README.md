@@ -16,6 +16,7 @@ those raw events, from that NPC's own point of view:
 - harmful magic put on them and by whom (burned, frozen, shocked, poisoned, slowed, paralyzed, drained, ...)
 - help given to them and by whom (healing, magical armor, wards, resistances, courage, ...)
 - kills per fighter, the player's set apart from the NPC's own
+- innocents cut down (a citizen or guard who never raised a weapon) and allies killed by their own side
 - injuries from injury mods, and beheadings and severed limbs (see "Other mods")
 - one paragraph summing up the whole battle, remembered as a SkyrimNet event
 

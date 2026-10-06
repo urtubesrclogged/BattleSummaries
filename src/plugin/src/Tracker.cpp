@@ -144,6 +144,8 @@ namespace BSM::Tracker
 			if (OnPlayerSide(a_actor, pc, &i.master)) i.side = Side::kPlayer;
 			else if (a_actor->IsHostileToActor(pc)) i.side = Side::kEnemy;
 			else i.side = Side::kOther;
+			// under a hold's law: citizens and guards have a crime faction, bandits and beasts have none
+			i.lawful = i.side != Side::kPlayer && a_actor->GetCrimeFaction() != nullptr;
 			return i;
 		}
 
@@ -402,7 +404,9 @@ namespace BSM::Tracker
 			auto& b = *g_current;
 			// an alarm where nothing happened (combat state with no blow struck and nobody dead) is not a battle
 			const bool blows = std::ranges::any_of(b.participants, [](const Participant& p) { return p.damageTaken > 0.0f || p.dead; });
-			if (b.participants.size() < 2 || !blows || b.Count(Side::kEnemy) == 0) {
+			// (with no enemies it is still a battle when an innocent was cut down)
+			const bool murder = std::ranges::any_of(b.participants, [&](const Participant& p) { return p.dead && b.Innocent(p); });
+			if (b.participants.size() < 2 || !blows || (b.Count(Side::kEnemy) == 0 && !murder)) {
 				SKSE::log::info("Battle {} came to nothing ({} participants); forgotten", b.id, b.participants.size());
 				g_current.reset();
 			g_battleOn = false;
@@ -690,6 +694,7 @@ namespace BSM::Tracker
 							continue;
 						}
 						if (scanInjuries) ScanInjuries(actor, false, now);
+						if (!g_current->participants[i].armed && actor->AsActorState()->IsWeaponDrawn()) g_current->Armed(id);
 
 						const float hp = HealthOf(actor), max = MaxHealthOf(actor);
 						g_current->participants[i].info.maxHealth = max;
@@ -1028,6 +1033,7 @@ namespace BSM::Tracker
 				s += std::format(" [{} {:08X} side {}{} taken {:.0f}/{:.0f} dealt {:.0f} healed {:.0f} min {:.0f}% downs {}{}{}]", p.info.name, p.info.id,
 					static_cast<int>(b.EffectiveSide(p)), b.Involved(p) ? (p.engaged ? "" : " (at one remove)") : " uninvolved", p.damageTaken, p.info.maxHealth, p.damageDealt, p.healingReceived,
 					p.minHealthPct * 100.0f, p.downs, p.nearDeath ? " neardeath" : "", p.dead ? " dead" : "");
+				if (b.Innocent(p)) s.insert(s.size() - 1, " innocent");
 				if (p.beheaded) s.insert(s.size() - 1, " beheaded");
 				else if (p.dismembered) s.insert(s.size() - 1, " dismembered");
 				for (const auto& i : p.injuries) s.insert(s.size() - 1, std::format(" injury:{}{}", i.name, i.carried ? "(carried)" : ""));

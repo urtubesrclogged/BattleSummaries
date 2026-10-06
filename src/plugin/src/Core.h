@@ -29,6 +29,7 @@ namespace BSM
 		ActorId     master{ 0 };  // the summoner / reanimator, when this is a commanded actor
 		float       maxHealth{ 1.0f };
 		float       healthPct{ 1.0f };  // their health share when they joined
+		bool        lawful{ false };    // belongs to a hold's law (a citizen, a guard): killing them is murder, unlike a bandit or a beast
 	};
 
 	// One kind of magic applied to a participant by one actor: "burned by fire" by 00012345 with "Flames", 4 times.
@@ -90,6 +91,9 @@ namespace BSM
 		std::vector<InjuryNote> injuries;
 
 		// Fought the player's side directly (traded a blow, a kill or a hostile spell with one of them)...
+		// seen with a weapon, spell or fists raised during the battle
+		bool armed{ false };
+
 		bool engaged{ false };
 		// ...or fought someone who did. Anything further removed (prey of a predator that never touched the party) is not
 		// part of this battle's story, whatever combat state the game put it in.
@@ -130,6 +134,7 @@ namespace BSM
 		void Injury(ActorId a_id, const std::string& a_name, bool a_carried, double a_now);
 		// the dead participant's body lost a limb (a_beheaded: the head)
 		void Dismember(ActorId a_id, bool a_beheaded);
+		void Armed(ActorId a_id);
 		void Down(ActorId a_id, double a_now);
 		void Up(ActorId a_id);
 		void Death(ActorId a_victim, ActorId a_killer, double a_now);
@@ -141,6 +146,10 @@ namespace BSM
 		// Took part in this battle. The player's side always counts; anyone else must have fought the player's side, or
 		// fought someone who did (a deer that only bolted is not an enemy, and neither is a crab a wolf killed nearby).
 		[[nodiscard]] bool Involved(const Participant& a_p) const;
+
+		// A lawful person who was attacked without fighting: never raised a weapon, struck nobody, cast nothing harmful.
+		// Not one of the enemies, whatever the game made of them once they were struck.
+		[[nodiscard]] bool Innocent(const Participant& a_p) const;
 
 		[[nodiscard]] float SideDamageDealt(Side a_side) const;
 		[[nodiscard]] int   Count(Side a_side) const;  // involved participants only

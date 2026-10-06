@@ -9,6 +9,9 @@
 - **Beheadings and severed limbs.** The game's own beheadings, and what Dismembering Framework does when it is
   installed, are told with the kill ("Lydia beheaded Bandit Chief."). Neither mod is required.
 - Both can be switched off in the ini (`bInjuries`, `bDismemberment`).
+- **Innocents and allies slain.** A citizen or guard who was cut down without ever raising a weapon is no longer
+  listed among the enemies: they are told as an innocent, with who killed them. An ally killed by their own side is
+  told as that, accident or not. Either makes the battle one to remember.
 - **How long the battle lasted** is told as a figure: seconds up to a minute, minutes up to five, the nearest five
   minutes up to an hour, the nearest half hour beyond ("It lasted 42 seconds.", "It lasted about 25 minutes.").
 

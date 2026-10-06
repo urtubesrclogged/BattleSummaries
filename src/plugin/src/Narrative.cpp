@@ -400,7 +400,15 @@ namespace BSM
 			if (auto o = Outcome(a_b, Side::kEnemy); !o.empty()) out.push_back(std::move(o));
 			if (const auto t = KillTally(a_b, Side::kEnemy); !t.empty()) out.push_back(std::format("Who killed the enemies: {}.", t));
 			for (const auto* p : party) {
-				if (p->dead) out.push_back(std::format("{} was killed by {}.", p->info.name, CreditName(a_b, p->killer)));
+				if (!p->dead) continue;
+				// killed by their own side: said outright, accident or not
+				const auto* k = a_b.Find(p->killer);
+				const bool  ownSide = k && k->info.id != p->info.id && a_b.EffectiveSide(*k) == Side::kPlayer;
+				out.push_back(std::format("{} was killed by {}{}.", p->info.name, CreditName(a_b, p->killer), ownSide ? ", who was on the same side: an ally slain by their own" : ""));
+			}
+			for (const auto* p : others) {
+				if (!p->dead || !a_b.Innocent(*p)) continue;
+				out.push_back(std::format("{}, an innocent who was not fighting anyone, was killed by {}.", p->info.name, CreditName(a_b, p->killer)));
 			}
 			for (auto& m : Maimings(a_b)) out.push_back(std::move(m));
 			return out;
@@ -498,6 +506,9 @@ namespace BSM
 
 	bool Significant(const Battle& a_b, int a_minEnemies, double a_minSeconds)
 	{
+		for (const auto& p : a_b.participants) {
+			if (p.dead && a_b.Innocent(p)) return true;  // an innocent died
+		}
 		if (a_b.Count(Side::kPlayer) == 0 || a_b.Count(Side::kEnemy) == 0) return false;  // nothing the player's side fought
 		for (const auto* p : OnSide(a_b, Side::kPlayer)) {
 			if (p->dead || p->WasCritical()) return true;
