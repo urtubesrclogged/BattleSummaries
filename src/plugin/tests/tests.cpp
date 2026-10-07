@@ -384,6 +384,30 @@ namespace
 		Check(Significant(m, 3, 30.0) && Has(BuildMemory(m, {}), "Heimskr, an innocent who was not fighting anyone, was killed by Kaira."), "a murder is remembered", BuildMemory(m, {}));
 	}
 
+	// Seen in a brawl of spawned monsters in Windhelm: a monster that killed the one that had downed a townsman was
+	// told as having saved his life, and a death at the hands of something the battle never saw as "killed by someone".
+	void TestFoesSaveNobody()
+	{
+		Battle b;
+		b.startedAt = 0;
+		b.Join(Info(kHero, "Kaira", Side::kPlayer, 200));
+		b.Join(Info(kLydia, "Lydia", Side::kPlayer, 300));
+		b.Join(Info(kGuard, "Ursine", Side::kPlayer, 100));
+		b.Join(Info(kChief, "Dwarven Centurion", Side::kEnemy, 400));
+		b.Join(Info(kMage, "Sinmur", Side::kEnemy, 900));
+		b.Damage(kHero, kMage, 10, 0.95f, 1);
+		b.Damage(kLydia, kChief, 290, 0.03f, 2);
+		b.Down(kLydia, 2);
+		b.Damage(kChief, kMage, 400, 0.0f, 5);
+		b.Death(kChief, kMage, 5);
+		b.Death(kGuard, 0xABCDEF, 6);  // killed by something that never joined
+		b.endedAt = 10;
+		const auto lydia = SummaryText(BuildSummary(b, kLydia, "Lydia", {}));
+		Check(Has(lydia, "Dwarven Centurion, who had struck down Lydia, was then killed by Sinmur.") && !Has(lydia, "saved Lydia"), "a foe's kill is told, but is no rescue", lydia);
+		Check(Has(lydia, "Ursine was killed, by whom is not known.") && !Has(lydia, "someone"), "an unseen killer is not 'someone'", lydia);
+		Check(Has(BuildMemory(b, {}), "Lydia was struck down by Dwarven Centurion: collapsed, helpless and bleeding out, unable to fight, but survived."), "and it is remembered so", BuildMemory(b, {}));
+	}
+
 	void TestDuration()
 	{
 		const auto is = [](double a_s, const char* a_want) { Check(DurationText(a_s) == a_want, a_want, DurationText(a_s)); };
@@ -449,6 +473,7 @@ int main()
 	TestKillCreditFollowsTheFinalBlow();
 	TestInjuriesAndDismemberment();
 	TestInnocentsAndAllies();
+	TestFoesSaveNobody();
 	TestDuration();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);

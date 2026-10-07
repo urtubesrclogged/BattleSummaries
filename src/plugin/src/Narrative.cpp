@@ -26,6 +26,15 @@ namespace BSM
 			return p && !p->info.name.empty() ? p->info.name : "someone";
 		}
 
+		std::string CreditName(const Battle& a_b, ActorId a_id);
+
+		// "was killed by Bandit Chief"; "was killed, by whom is not known" when the killer is nobody the battle saw
+		std::string KilledBy(const Battle& a_b, ActorId a_killer)
+		{
+			if (a_killer == 0 || !a_b.Find(a_killer)) return "was killed, by whom is not known";
+			return std::format("was killed by {}", CreditName(a_b, a_killer));
+		}
+
 		// for kill and deed credit: a summon is named with its master
 		std::string CreditName(const Battle& a_b, ActorId a_id)
 		{
@@ -143,9 +152,11 @@ namespace BSM
 					r.deeds.push_back(std::format("{} recovered enough to kill {}, who had {} {}.", a_p.info.name, a->info.name, what, a_p.info.name));
 				} else if (a->killer != 0) {
 					r.deeds.push_back(std::format("{}, who had {} {}, was then killed by {}.", a->info.name, what, a_p.info.name, CreditName(a_b, a->killer)));
-					r.brief.push_back(std::format("{} killed {}", NameOf(a_b, a->killer), a->info.name));
+					// a foe who happened to kill the assailant (monsters turning on each other) saved nobody
 					const auto* k = a_b.Find(a->killer);
-					addSavior(k && k->info.master != 0 && a_b.Find(k->info.master) ? k->info.master : a->killer);
+					if (!k || a_b.EffectiveSide(*k) == Opposing(mine)) continue;
+					r.brief.push_back(std::format("{} killed {}", NameOf(a_b, a->killer), a->info.name));
+					addSavior(k->info.master != 0 && a_b.Find(k->info.master) ? k->info.master : a->killer);
 				}
 			}
 			for (const auto& [healer, h] : a_p.healFrom) {
@@ -297,7 +308,7 @@ namespace BSM
 			out.push_back(std::format("{} {} and {}.", n, Wounds(a_p, a_opt), Dealt(a_b, a_p, a_opt)));
 
 			if (a_p.dead) {
-				out.push_back(std::format("{} was killed by {}.", n, CreditName(a_b, a_p.killer)));
+				out.push_back(std::format("{} {}.", n, KilledBy(a_b, a_p.killer)));
 			} else if (const auto brink = Brink(a_b, a_p); !brink.empty()) {
 				out.push_back(std::format("{} {}.", n, brink));
 			} else if (a_p.startHealthPct < a_b.nearDeathPct) {
@@ -359,7 +370,7 @@ namespace BSM
 		{
 			const Side foes = Opposing(a_b.EffectiveSide(a_p));
 			std::vector<std::string> bits{ Wounds(a_p, a_opt) };
-			if (a_p.dead) bits.push_back(std::format("was killed by {}", CreditName(a_b, a_p.killer)));
+			if (a_p.dead) bits.push_back(KilledBy(a_b, a_p.killer));
 			else if (const auto brink = Brink(a_b, a_p); !brink.empty()) {
 				bits.push_back(brink);
 				const auto r = FindRescue(a_b, a_p, a_opt);
@@ -404,11 +415,11 @@ namespace BSM
 				// killed by their own side: said outright, accident or not
 				const auto* k = a_b.Find(p->killer);
 				const bool  ownSide = k && k->info.id != p->info.id && a_b.EffectiveSide(*k) == Side::kPlayer;
-				out.push_back(std::format("{} was killed by {}{}.", p->info.name, CreditName(a_b, p->killer), ownSide ? ", who was on the same side: an ally slain by their own" : ""));
+				out.push_back(std::format("{} {}{}.", p->info.name, KilledBy(a_b, p->killer), ownSide ? ", who was on the same side: an ally slain by their own" : ""));
 			}
 			for (const auto* p : others) {
 				if (!p->dead || !a_b.Innocent(*p)) continue;
-				out.push_back(std::format("{}, an innocent who was not fighting anyone, was killed by {}.", p->info.name, CreditName(a_b, p->killer)));
+				out.push_back(std::format("{}, an innocent who was not fighting anyone, {}.", p->info.name, KilledBy(a_b, p->killer)));
 			}
 			for (auto& m : Maimings(a_b)) out.push_back(std::move(m));
 			return out;
