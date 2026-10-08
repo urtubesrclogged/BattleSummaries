@@ -36,6 +36,8 @@ for M in "${TARGETS[@]}"; do
 	# SkyrimNet 0.25+ content: an EXTERNAL layer, registered by SkyrimNet at start-up (docs/modding/CONTENT_ROOTS.md).
 	SN="$M/SKSE/Plugins/SkyrimNet/external"
 	rm -rf "$SN/$ID" "$SN/$OLD_ID" && mkdir -p "$SN" && cp -r "$R/config/SKSE/Plugins/SkyrimNet/external/$ID" "$SN/"
+	# the settings shown on SkyrimNet's settings page (only the schema: the player's own settings.yaml is SkyrimNet's to write)
+	mkdir -p "$M/SKSE/Plugins/SkyrimNet/config/plugins/BattleSummaries" && cp "$R/config/SKSE/Plugins/SkyrimNet/config/plugins/BattleSummaries/manifest.yaml" "$M/SKSE/Plugins/SkyrimNet/config/plugins/BattleSummaries/manifest.yaml"
 	[ -f "$M/meta.ini" ] || printf '[General]\nmodid=0\nnotes=Battle Summaries for SkyrimNet. Needs SkyrimNet beta 25+ and Address Library.\n' > "$M/meta.ini"   # MO2 bookkeeping only
 	echo "deployed to $M ($(find "$M" -type f | wc -l) files, DLL $(md5sum < "$M/SKSE/Plugins/BattleSummaries.dll" | cut -c1-8))"
 done

@@ -113,6 +113,18 @@ namespace BSM::Tracker
 		// The party is still "in combat" after its battle closed (a follower chasing a deer): no new battle is begun from
 		// that state alone, only from a blow, a death or someone newly entering combat with them.
 		bool   g_stale{ false };
+		bool   g_readSettings{ false };  // a battle began: have the SkyrimNet settings page read again, once out of the lock
+
+		NarrativeOptions Opts()
+		{
+			const auto& cfg = Settings::Get();
+			NarrativeOptions o;
+			o.showNumbers = cfg.showNumbers;
+			o.maxOthers = cfg.maxOthers;
+			o.maxEffects = cfg.maxEffects;
+			o.ignoreFriendlyFire = cfg.ignoreFriendlyFire;
+			return o;
+		}
 		double g_lastBlow{ 0.0 };  // the last damage or death in the battle, or the last moment an enemy was still at it
 		double g_lastTick{ 0.0 };
 		int    g_nextId{ 1 };
@@ -403,6 +415,7 @@ namespace BSM::Tracker
 				g_live.clear();
 				g_recentHeals.clear();
 				SKSE::log::info("Battle {} began at '{}'", g_current->id, g_current->location);
+				g_readSettings = true;
 			}
 			g_quiet = 0.0;
 			g_lastBlow = a_now;
@@ -465,7 +478,7 @@ namespace BSM::Tracker
 					}
 				}
 			}
-			NarrativeOptions opt{ Settings::Get().showNumbers, Settings::Get().maxOthers, Settings::Get().maxEffects };
+			const NarrativeOptions opt = Opts();
 			g_lastMemory = BuildMemory(b, opt);
 			SKSE::log::info("Battle {} ended after {:.0f}s, {} participants, {} witnesses: {}", b.id, b.endedAt - b.startedAt, b.participants.size(),
 				extra.witnesses.size(), g_lastMemory);
@@ -673,7 +686,7 @@ namespace BSM::Tracker
 				if (extra.remembered || a_now - extra.closedAt <= cfg.mergeGapSeconds) continue;
 				extra.remembered = true;
 				if (Significant(b, cfg.minEnemies, cfg.minSeconds)) {
-					out.push_back(BuildMemory(b, { cfg.showNumbers, cfg.maxOthers, cfg.maxEffects }));
+					out.push_back(BuildMemory(b, Opts()));
 				}
 			}
 			return out;
@@ -804,6 +817,7 @@ namespace BSM::Tracker
 				}
 				memories = DueMemories(now);
 			}
+			if (std::exchange(g_readSettings, false)) SkyrimNet::ReadSettings();
 			for (const auto& m : memories) SkyrimNet::Remember(m);  // outside the lock: this goes through Papyrus
 			return battle;
 		}
@@ -972,7 +986,7 @@ namespace BSM::Tracker
 			const auto*      b = BattleFor(id, witness);
 			if (!b) return r;
 			if (b->participants.size() < 2) return r;  // just begun: nothing to tell yet
-			r = BuildSummary(*b, id, name, { cfg.showNumbers, cfg.maxOthers, cfg.maxEffects });
+			r = BuildSummary(*b, id, name, Opts());
 			a_age = AgeText(*b);
 			return r;
 		}

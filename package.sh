@@ -35,6 +35,8 @@ for dp, _, fs in os.walk(base):
     for f in sorted(fs):
         full = os.path.join(dp, f)
         files.append((full, "SKSE/Plugins/SkyrimNet/external/" + layer + "/" + os.path.relpath(full, base).replace("\\", "/")))
+files.append((j("config", "SKSE", "Plugins", "SkyrimNet", "config", "plugins", "BattleSummaries", "manifest.yaml"),
+              "SKSE/Plugins/SkyrimNet/config/plugins/BattleSummaries/manifest.yaml"))
 # the licenses and credits travel with the mod (docs/ at the archive root; a mod manager leaves it out of Data or harmlessly in)
 files += [(j("LICENSE"), "docs/Battle Summaries/LICENSE.txt"), (j("LICENSE-CONTENT.md"), "docs/Battle Summaries/LICENSE-CONTENT.md"),
           (j("THIRD_PARTY_NOTICES.md"), "docs/Battle Summaries/THIRD_PARTY_NOTICES.md"), (j("README.md"), "docs/Battle Summaries/README.md"),

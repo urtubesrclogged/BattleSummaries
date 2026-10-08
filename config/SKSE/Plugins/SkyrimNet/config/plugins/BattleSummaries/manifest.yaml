@@ -1,0 +1,50 @@
+# Battle Summaries: the settings shown on SkyrimNet's own settings page. What is set there takes precedence over
+# BattleSummaries.ini; a change takes effect when the next battle begins or a save is loaded.
+plugin:
+  name: BattleSummaries
+  version: "1.2.0"
+  description: "Gives NPCs a factual summary of each battle near the player, in place of the raw combat events."
+
+schema:
+  fields:
+    - name: "Ignore friendly fire"
+      path: "summary.ignore_friendly_fire"
+      type: "bool"
+      description: "Friendly fire is harm from someone on the same side, such as a follower caught in your fireball. Off: it is told as an accident. On: it is left out of the summaries, so followers stop bringing it up. A death by friendly fire is always told."
+      defaultValue: false
+      category: "Summary"
+
+    - name: "Show damage numbers"
+      path: "summary.show_numbers"
+      type: "bool"
+      description: "Add raw damage and healing points to the summary. Off by default: amounts are told in words, because language models tend to recite any figure they are given."
+      defaultValue: false
+      category: "Summary"
+
+    - name: "Summary lifetime (game hours)"
+      path: "summary.game_hours"
+      type: "float"
+      description: "How long after a battle its summary is still given to dialogue. After that only the remembered event is left."
+      defaultValue: 6.0
+      category: "Summary"
+
+    - name: "Remember battles"
+      path: "memory.remember_battles"
+      type: "bool"
+      description: "Register one remembered SkyrimNet event for each battle worth remembering."
+      defaultValue: true
+      category: "Memory"
+
+    - name: "Injuries from injury mods"
+      path: "mods.injuries"
+      type: "bool"
+      description: "Tell injuries given by injury mods such as Blade and Blunt and Wildcat."
+      defaultValue: true
+      category: "Other mods"
+
+    - name: "Beheadings and severed limbs"
+      path: "mods.dismemberment"
+      type: "bool"
+      description: "Tell beheadings and severed limbs: the game's own, Dismembering Framework's and Next-Gen Decapitations'."
+      defaultValue: true
+      category: "Other mods"

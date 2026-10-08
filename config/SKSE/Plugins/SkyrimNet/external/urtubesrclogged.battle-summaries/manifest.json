@@ -22,7 +22,7 @@
   "languages": [
     "en"
   ],
-  "version": "1.1.0",
-  "changelog": "New in the summary: injuries from injury mods (Blade and Blunt, Wildcat; others through the ini), beheadings and severed limbs (Dismembering Framework, Next-Gen Decapitations, the game's own), innocents and allies slain, and how long the battle lasted.",
+  "version": "1.2.0",
+  "changelog": "Friendly fire is told as an accident, or left out of the summaries: your choice. The mod's main settings are now on SkyrimNet's own settings page. A foe who kills the one that struck an ally down is no longer told as that ally's rescuer.",
   "min_skyrimnet_version": "0.25.0"
 }

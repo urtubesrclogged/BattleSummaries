@@ -76,6 +76,34 @@ namespace BSM
 			return out;
 		}
 
+		// someone else, on the same side: what they did to a_p was friendly fire
+		bool OwnSide(const Battle& a_b, const Participant& a_p, ActorId a_other)
+		{
+			const auto* q = a_b.Find(a_other);
+			return q && q->info.id != a_p.info.id && a_b.EffectiveSide(*q) == a_b.EffectiveSide(a_p);
+		}
+
+		// the damage a participant did to the other side: what they did to their own does not make them a fighter
+		float DealtToFoes(const Battle& a_b, const Participant& a_p)
+		{
+			const Side side = a_b.EffectiveSide(a_p);
+			float      sum = 0.0f;
+			for (const auto& q : a_b.participants) {
+				if (q.info.id == a_p.info.id || a_b.EffectiveSide(q) == side) continue;
+				if (const auto it = q.damageFrom.find(a_p.info.id); it != q.damageFrom.end()) sum += it->second;
+			}
+			return sum;
+		}
+
+		float SideDealtToFoes(const Battle& a_b, Side a_side)
+		{
+			float sum = 0.0f;
+			for (const auto& p : a_b.participants) {
+				if (a_b.EffectiveSide(p) == a_side) sum += DealtToFoes(a_b, p);
+			}
+			return sum;
+		}
+
 		Side Opposing(Side a_side) { return a_side == Side::kEnemy ? Side::kPlayer : Side::kEnemy; }
 
 		std::string Points(float a_amount, const NarrativeOptions& a_opt)
@@ -100,18 +128,19 @@ namespace BSM
 		std::string Dealt(const Battle& a_b, const Participant& a_p, const NarrativeOptions& a_opt)
 		{
 			const Side  side = a_b.EffectiveSide(a_p);
-			const float total = a_b.SideDamageDealt(side);
-			if (a_p.damageDealt <= 0.0f) return "dealt no damage to anyone";
+			const float total = SideDealtToFoes(a_b, side);
+			const float dealt = DealtToFoes(a_b, a_p);
+			if (dealt <= 0.0f) return "dealt no damage to anyone";
 			std::string w;
 			if (a_b.Count(side) <= 1 || total <= 0.0f) w = "dealt all the damage on their side";
 			else {
-				const float s = a_p.damageDealt / total;
+				const float s = dealt / total;
 				if (s < 0.15f) w = "dealt only a small part of their side's damage";
 				else if (s < 0.4f) w = "dealt a fair share of their side's damage";
 				else if (s < 0.7f) w = "dealt a large share of their side's damage";
 				else w = "dealt most of their side's damage";
 			}
-			return w + Points(a_p.damageDealt, a_opt);
+			return w + Points(dealt, a_opt);
 		}
 
 		std::string HealAmount(const Participant& a_p, float a_amount, const NarrativeOptions& a_opt)
@@ -177,9 +206,10 @@ namespace BSM
 		}
 
 		// "was struck down (collapsed, bleeding out) twice by X" / "was brought to the edge of death by X" / ""
-		std::string Brink(const Battle& a_b, const Participant& a_p)
+		std::string Brink(const Battle& a_b, const Participant& a_p, const NarrativeOptions& a_opt)
 		{
-			const std::string by = a_p.broughtLowBy != 0 ? std::format(" by {}", NameOf(a_b, a_p.broughtLowBy)) : std::string();
+			std::string by = a_p.broughtLowBy != 0 ? std::format(" by {}", NameOf(a_b, a_p.broughtLowBy)) : std::string();
+			if (OwnSide(a_b, a_p, a_p.broughtLowBy)) by = a_opt.ignoreFriendlyFire ? std::string() : by + " (by accident: friendly fire)";
 			if (a_p.downs > 0) {
 				const std::string times = a_p.downs == 1 ? "" : a_p.downs == 2 ? " twice" : std::format(" {} times", a_p.downs);
 				return std::format("was struck down{}{}: collapsed, helpless and bleeding out, unable to fight", times, by);
@@ -239,6 +269,7 @@ namespace BSM
 			int                      more = 0;
 			for (const auto& e : a_p.effects) {
 				if (e.hostile != a_hostile) continue;
+				if (e.hostile && OwnSide(a_b, a_p, e.by)) continue;  // friendly fire: told apart (FriendlyFire), or not at all
 				if (static_cast<int>(items.size()) < a_max) items.push_back(EffectPhrase(a_b, a_p, e));
 				else ++more;
 			}
@@ -286,6 +317,16 @@ namespace BSM
 			return out;
 		}
 
+		// what their own side's attacks did to them: "burned by fire by Kaira (Fireball)"
+		std::string FriendlyFire(const Battle& a_b, const Participant& a_p, int a_max)
+		{
+			std::vector<std::string> items;
+			for (const auto& e : a_p.effects) {
+				if (e.hostile && OwnSide(a_b, a_p, e.by) && static_cast<int>(items.size()) < a_max) items.push_back(EffectPhrase(a_b, a_p, e));
+			}
+			return JoinList(items);
+		}
+
 		int EnemyKills(const Battle& a_b, const Participant& a_p, Side a_foes, std::vector<const Participant*>* a_out = nullptr)
 		{
 			int n = 0;
@@ -309,7 +350,7 @@ namespace BSM
 
 			if (a_p.dead) {
 				out.push_back(std::format("{} {}.", n, KilledBy(a_b, a_p.killer)));
-			} else if (const auto brink = Brink(a_b, a_p); !brink.empty()) {
+			} else if (const auto brink = Brink(a_b, a_p, a_opt); !brink.empty()) {
 				out.push_back(std::format("{} {}.", n, brink));
 			} else if (a_p.startHealthPct < a_b.nearDeathPct) {
 				out.push_back(std::format("{} went into this fight already close to death from earlier wounds, and came through it without being hurt much further.", n));
@@ -343,6 +384,11 @@ namespace BSM
 				out.push_back(std::format("{} was injured in this fight and still carries it: {}.", n, hurt));
 			}
 			if (const auto bad = Effects(a_b, a_p, true, a_opt.maxEffects); !bad.empty()) out.push_back(std::format("{} suffered: {}.", n, bad));
+			if (!a_opt.ignoreFriendlyFire) {
+				if (const auto own = FriendlyFire(a_b, a_p, a_opt.maxEffects); !own.empty()) {
+					out.push_back(std::format("{} was caught in their own side's attacks, by accident (friendly fire, not an attack on them): {}.", n, own));
+				}
+			}
 			if (const auto good = Effects(a_b, a_p, false, a_opt.maxEffects); !good.empty()) out.push_back(std::format("{} was helped by: {}.", n, good));
 
 			std::vector<const Participant*> victims;
@@ -371,7 +417,7 @@ namespace BSM
 			const Side foes = Opposing(a_b.EffectiveSide(a_p));
 			std::vector<std::string> bits{ Wounds(a_p, a_opt) };
 			if (a_p.dead) bits.push_back(KilledBy(a_b, a_p.killer));
-			else if (const auto brink = Brink(a_b, a_p); !brink.empty()) {
+			else if (const auto brink = Brink(a_b, a_p, a_opt); !brink.empty()) {
 				bits.push_back(brink);
 				const auto r = FindRescue(a_b, a_p, a_opt);
 				if (!r.saviors.empty()) bits.push_back(std::format("was saved by {}", JoinList(Names(a_b, r.saviors))));
@@ -415,7 +461,7 @@ namespace BSM
 				// killed by their own side: said outright, accident or not
 				const auto* k = a_b.Find(p->killer);
 				const bool  ownSide = k && k->info.id != p->info.id && a_b.EffectiveSide(*k) == Side::kPlayer;
-				out.push_back(std::format("{} {}{}.", p->info.name, KilledBy(a_b, p->killer), ownSide ? ", who was on the same side: an ally slain by their own" : ""));
+				out.push_back(std::format("{} {}{}.", p->info.name, KilledBy(a_b, p->killer), ownSide ? ", by accident: they were on the same side" : ""));
 			}
 			for (const auto* p : others) {
 				if (!p->dead || !a_b.Innocent(*p)) continue;
@@ -471,7 +517,7 @@ namespace BSM
 			if (const auto hurt = Injuries(a_b, *p, false); !hurt.empty()) add(std::format("{} came out of it injured: {}.", p->info.name, hurt));
 			if (!p->WasCritical()) continue;
 			const auto        r = FindRescue(a_b, *p, a_opt);
-			const std::string brink = Brink(a_b, *p);
+			const std::string brink = Brink(a_b, *p, a_opt);
 			if (!r.saviors.empty()) {
 				add(std::format("{} {}, and would most likely have died, but {}: {} saved {}'s life.", p->info.name, brink, JoinList(r.brief),
 					JoinList(Names(a_b, r.saviors)), p->info.name));

@@ -34,6 +34,11 @@ namespace BSM::SkyrimNet
 		SKSE::log::info("SkyrimNet: asking for the battle_summary decorator to be registered");
 	}
 
+	void ReadSettings()
+	{
+		if (Available()) Call("ReadSettings", RE::MakeFunctionArguments());
+	}
+
 	void Remember(const std::string& a_text)
 	{
 		if (a_text.empty() || !Available()) return;

@@ -31,6 +31,11 @@ namespace BSM
 			if (a_result == 0) SKSE::log::info("SkyrimNet: the battle was accepted as a remembered event");
 			else SKSE::log::error("SkyrimNet: REFUSED the remembered event (result {})", a_result);
 		}
+		void ApplySetting(Tag*, std::string a_path, std::string a_value)
+		{
+			// on the main thread, which reads the settings
+			SKSE::GetTaskInterface()->AddTask([path = std::move(a_path), value = std::move(a_value)] { Settings::Override(path, value); });
+		}
 		std::string GetVersion(Tag*) { return std::format("{}.{}.{}", BSM_VERSION_MAJOR, BSM_VERSION_MINOR, BSM_VERSION_PATCH); }
 	}
 
@@ -49,6 +54,7 @@ namespace BSM
 		REG(DebugFakeRescue);
 		REG(ReportRegistered);
 		REG(ReportRemembered);
+		REG(ApplySetting);
 		REG(GetVersion);
 #undef REG
 		return true;

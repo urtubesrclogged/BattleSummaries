@@ -12,6 +12,9 @@ String Function GetSummaryJson(Actor akActor) Global Native
 Function ReportRegistered(Int aiResult) Global Native
 Function ReportRemembered(Int aiResult) Global Native
 
+; A setting read from SkyrimNet's settings page, by its path there; an empty value leaves the ini's value standing.
+Function ApplySetting(String asPath, String asValue) Global Native
+
 ; ---- for testing and support ----
 String Function GetSummaryText(Actor akActor) Global Native   ; the same summary as plain text
 String Function GetStatus() Global Native                   ; the battle underway, with each participant's running totals

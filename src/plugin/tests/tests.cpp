@@ -291,7 +291,7 @@ namespace
 		Check(b.Find(kLydia)->kills.size() == 3 && b.Find(kHero)->kills.size() == 1, "the one who dealt the final blow made the kill", "");
 		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", {}));
 		Check(Has(hero, "Who killed the enemies: Lydia 3 (Cave Bear x2 and Cultist); Kaira 1 (Giant)."), "tally by final blow", hero);
-		Check(Has(hero, "Uthgerd was killed by Giant.") && !Has(hero, "an ally slain"), "nobody is accused of killing an ally they never struck", hero);
+		Check(Has(hero, "Uthgerd was killed by Giant.") && !Has(hero, "by accident"), "nobody is accused of killing an ally they never struck", hero);
 		Check(Has(hero, "Kaira took no damage worth the name and dealt only a small part of their side's damage."), "a healer is not told as the one who did the fighting", hero);
 	}
 
@@ -371,7 +371,7 @@ namespace
 		Check(Has(hero, "Heimskr, an innocent who was not fighting anyone, was killed by Kaira."), "an innocent's death is said outright", hero);
 		Check(Has(hero, "Kaira and Lydia fought against Whiterun Guard x2 and Bandit.") && Has(hero, "All 3 enemies were killed."), "an innocent is not one of the enemies", hero);
 		Check(Has(hero, "Also caught up in it: Heimskr."), "but was caught up in it", hero);
-		Check(Has(hero, "Lydia was killed by Kaira, who was on the same side: an ally slain by their own."), "an ally killed by their own side", hero);
+		Check(Has(hero, "Lydia was killed by Kaira, by accident: they were on the same side."), "an ally killed by their own side", hero);
 		Check(Has(hero, "Kaira killed 2 of the 3 who died on the other side"), "the innocent is not one of the killer's enemy kills", hero);
 
 		Battle m;  // nothing but a murder is still something to tell
@@ -406,6 +406,39 @@ namespace
 		Check(Has(lydia, "Dwarven Centurion, who had struck down Lydia, was then killed by Sinmur.") && !Has(lydia, "saved Lydia"), "a foe's kill is told, but is no rescue", lydia);
 		Check(Has(lydia, "Ursine was killed, by whom is not known.") && !Has(lydia, "someone"), "an unseen killer is not 'someone'", lydia);
 		Check(Has(BuildMemory(b, {}), "Lydia was struck down by Dwarven Centurion: collapsed, helpless and bleeding out, unable to fight, but survived."), "and it is remembered so", BuildMemory(b, {}));
+	}
+
+	// Asked for by a player whose followers kept complaining of being "drained and roasted" by the player's area spells.
+	void TestFriendlyFire()
+	{
+		Battle b;
+		b.startedAt = 0;
+		b.Join(Info(kHero, "Kaira", Side::kPlayer, 200));
+		b.Join(Info(kLydia, "Lydia", Side::kPlayer, 300));
+		b.Join(Info(kBandit1, "Bandit", Side::kEnemy, 100));
+		b.Damage(kLydia, kBandit1, 30, 0.9f, 1);
+		b.Effect(kLydia, kBandit1, "poisoned", "Weak Poison", true);
+		b.Effect(kLydia, kHero, "burned by fire", "Fireball", true);
+		b.Damage(kLydia, kHero, 240, 0.1f, 2);  // the fireball takes her to the brink
+		b.Damage(kBandit1, kHero, 100, 0.0f, 3);
+		b.Death(kBandit1, kHero, 3);
+		b.endedAt = 10;
+
+		const auto told = SummaryText(BuildSummary(b, kLydia, "Lydia", {}));
+		Check(Has(told, "Lydia suffered: poisoned by Bandit (Weak Poison).") && Has(told, "Lydia was caught in their own side's attacks, by accident (friendly fire, not an attack on them): burned by fire by Kaira (Fireball)."),
+			"friendly fire is told apart, as an accident", told);
+		Check(Has(told, "brought to the very edge of death by Kaira (by accident: friendly fire)"), "brought low by an ally: an accident", told);
+		NarrativeOptions numbers;
+		numbers.showNumbers = true;
+		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", numbers));
+		Check(Has(hero, "dealt most of their side's damage (about 100 points)."), "what was done to an ally is not counted as fighting", hero);
+
+		NarrativeOptions quiet;
+		quiet.ignoreFriendlyFire = true;
+		const auto hidden = SummaryText(BuildSummary(b, kLydia, "Lydia", quiet));
+		Check(!Has(hidden, "Fireball") && !Has(hidden, "friendly fire") && !Has(hidden, "by Kaira"), "friendly fire left out", hidden);
+		Check(Has(hidden, "Lydia suffered: poisoned by Bandit (Weak Poison).") && Has(hidden, "Lydia was brought to the very edge of death, with almost no health left."), "the rest still told", hidden);
+		Check(!Has(BuildMemory(b, quiet), "Kaira (by accident"), "and left out of what is remembered", BuildMemory(b, quiet));
 	}
 
 	void TestDuration()
@@ -474,6 +507,7 @@ int main()
 	TestInjuriesAndDismemberment();
 	TestInnocentsAndAllies();
 	TestFoesSaveNobody();
+	TestFriendlyFire();
 	TestDuration();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);

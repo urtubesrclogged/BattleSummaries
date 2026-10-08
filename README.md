@@ -76,7 +76,11 @@ None of these is required; each is picked up when present.
 
 ## Settings
 
-`SKSE/Plugins/BattleSummaries.ini`, read at game start:
+The settings most players change are on SkyrimNet's own settings page, under Battle Summaries among its plugins:
+friendly fire, damage numbers, how long a summary lasts, remembered battles, injuries and dismemberment. A change made
+there takes effect when the next battle begins or a save is loaded, and takes precedence over the ini.
+
+Everything is also in `SKSE/Plugins/BattleSummaries.ini`, read at game start:
 
 | Setting | Default | Meaning |
 |---|---|---|
@@ -88,6 +92,7 @@ None of these is required; each is picked up when present.
 | `fWitnessRange` | 3500 | Bystanders this close when a battle ends know what happened in it |
 | `[Summary] fSummaryGameHours` | 6 | How long after a battle its summary is still given to dialogue |
 | `bShowNumbers` | false | Add raw damage and healing points to the summary |
+| `bIgnoreFriendlyFire` | false | Harm from one's own side: false tells it as an accident, true leaves it out |
 | `iMaxCompanionLines` | 6 | Most companions listed one by one |
 | `iMaxEffectsPerList` | 6 | Most magic effects listed per fighter |
 | `[Memory] bRememberBattles` | true | Register a remembered SkyrimNet event per battle worth remembering |

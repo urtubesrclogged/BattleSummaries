@@ -3,5 +3,6 @@
 Scriptname SkyrimNetApi Hidden
 
 Int Function RegisterDecorator(String decoratorID, String sourceScript, String functionName) Global Native
+String Function GetConfigString(String configName, String path, String defaultValue) Global Native
 Int Function RegisterPersistentEvent(String content, Actor originatorActor, Actor targetActor) Global Native
 Int Function RegisterShortLivedEvent(String eventId, String eventType, String description, String data, Int ttlMs, Actor sourceActor, Actor targetActor) Global Native

@@ -15,6 +15,7 @@ namespace BSM::Settings
 		float range{ 10000.0f };        // actors further than this from the player are not tracked
 		float witnessRange{ 3500.0f };  // bystanders this close at the end know what happened
 		bool  showNumbers{ false };
+		bool  ignoreFriendlyFire{ false };  // false: harm from one's own side is told as an accident; true: left out
 		int   maxOthers{ 6 };
 		int   maxEffects{ 6 };
 
@@ -33,4 +34,8 @@ namespace BSM::Settings
 	[[nodiscard]] const Data& Get();
 	void                      Load();  // Data/SKSE/Plugins/BattleSummaries.ini; missing keys keep their defaults
 	void                      SetVerbose(bool a_on);
+
+	// A setting made on SkyrimNet's own settings page (its path there, its value as text). Empty = not set there:
+	// the ini's value stands. Main thread.
+	void Override(const std::string& a_path, const std::string& a_value);
 }

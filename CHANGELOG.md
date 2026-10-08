@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.0
+
+- **Friendly fire.** Harm from someone on the same side (a follower caught in the player's fireball) is told apart
+  from what the enemy did, as an accident, so followers stop taking it as an attack on them. It can also be left out
+  of the summaries altogether ("Ignore friendly fire"). A death by friendly fire is always told.
+- **Settings on SkyrimNet's own settings page.** Friendly fire, damage numbers, how long a summary lasts, remembered
+  battles, injuries and dismemberment can be set there, among SkyrimNet's plugins. What is set there takes precedence
+  over the ini and takes effect when the next battle begins or a save is loaded. The ini still works by itself.
+- Damage done to one's own side no longer counts towards "dealt most of their side's damage".
+- A foe who kills the one that struck an ally down (monsters turning on each other) is no longer told as having saved
+  that ally's life.
+- A death at the hands of something the battle never saw (a console kill, a fall) reads "was killed, by whom is not
+  known" and no longer "killed by someone".
+
 ## 1.1.0
 
 - **Injuries from injury mods.** A fighter who picks up an injury during the battle is told so, with whose blows did it
