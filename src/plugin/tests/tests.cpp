@@ -443,6 +443,36 @@ namespace
 		Check(!Has(BuildMemory(b, quiet), "Kaira (by accident"), "and left out of what is remembered", BuildMemory(b, quiet));
 	}
 
+	// The first of the "significant moments": several foes killed by one fighter in the same instant.
+	void TestKilledAtOnce()
+	{
+		Battle b;
+		b.startedAt = 0;
+		b.Join(Info(kHero, "Kaira", Side::kPlayer, 200));
+		b.Join(Info(kLydia, "Lydia", Side::kPlayer, 300));
+		b.Join(Info(kBandit1, "Bandit", Side::kEnemy, 100));
+		b.Join(Info(kBandit2, "Bandit", Side::kEnemy, 100));
+		b.Join(Info(kChief, "Bandit Chief", Side::kEnemy, 300));
+		b.Join(Info(kMage, "Bandit Mage", Side::kEnemy, 80));
+		b.Join(Info(kGuard, "Bandit Archer", Side::kEnemy, 80));
+		b.Damage(kHero, kChief, 20, 0.9f, 1);
+		// a fireball: three die within the same half second
+		for (const auto id : { kBandit1, kBandit2, kChief }) b.Damage(id, kHero, 400, 0.0f, 5.0);
+		b.Death(kBandit1, kHero, 5.0);
+		b.Death(kBandit2, kHero, 5.1);
+		b.Death(kChief, kHero, 5.4);
+		// Lydia's two kills are seconds apart: not at once
+		b.Damage(kMage, kLydia, 80, 0.0f, 8);
+		b.Death(kMage, kLydia, 8);
+		b.Damage(kGuard, kLydia, 80, 0.0f, 11);
+		b.Death(kGuard, kLydia, 11);
+		b.endedAt = 15;
+		const auto told = SummaryText(BuildSummary(b, kLydia, "Lydia", {}));
+		Check(Has(told, "Kaira killed 3 at once: Bandit x2 and Bandit Chief."), "three in one stroke", told);
+		Check(!Has(told, "Lydia killed 2 at once"), "kills seconds apart are not at once", told);
+		Check(Has(BuildMemory(b, {}), "Kaira killed 3 at once: Bandit x2 and Bandit Chief."), "and it is remembered", BuildMemory(b, {}));
+	}
+
 	void TestDuration()
 	{
 		const auto is = [](double a_s, const char* a_want) { Check(DurationText(a_s) == a_want, a_want, DurationText(a_s)); };
@@ -510,6 +540,7 @@ int main()
 	TestInnocentsAndAllies();
 	TestFoesSaveNobody();
 	TestFriendlyFire();
+	TestKilledAtOnce();
 	TestDuration();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);

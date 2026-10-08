@@ -8,6 +8,8 @@
 - **Settings on SkyrimNet's own settings page.** Friendly fire, damage numbers, how long a summary lasts, remembered
   battles, injuries and dismemberment can be set there, among SkyrimNet's plugins. What is set there takes precedence
   over the ini and takes effect when the next battle begins or a save is loaded. The ini still works by itself.
+- **Several killed at once.** When one fighter kills two or more foes in the same instant (a fireball, a shout), the
+  summary says so: "Kaira killed 3 at once: Bandit x2 and Bandit Chief."
 - Damage done to one's own side no longer counts towards "dealt most of their side's damage".
 - A foe who kills the one that struck an ally down (monsters turning on each other) is no longer told as having saved
   that ally's life.

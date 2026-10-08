@@ -341,6 +341,42 @@ namespace BSM
 			return JoinList(items);
 		}
 
+		// Several foes killed by one fighter in the same instant (a fireball, a shout, a cleaving blow): "Kaira killed 3
+		// at once: Bandit x2 and Bandit Chief." The largest first, three lines at most.
+		std::vector<std::string> KilledAtOnce(const Battle& a_b)
+		{
+			constexpr double kSameInstant = 0.75;  // seconds between deaths that still count as one stroke
+			struct Stroke
+			{
+				ActorId                         killer;
+				std::vector<const Participant*> victims;
+			};
+			std::vector<Stroke> strokes;
+			for (const auto& k : a_b.participants) {
+				if (k.kills.size() < 2) continue;
+				const Side                      foes = Opposing(a_b.EffectiveSide(k));
+				std::vector<const Participant*> dead;
+				for (const auto id : k.kills) {
+					const auto* v = a_b.Find(id);
+					if (v && v->dead && v->diedAt >= 0.0 && a_b.Involved(*v) && a_b.EffectiveSide(*v) == foes) dead.push_back(v);
+				}
+				std::ranges::stable_sort(dead, [](const Participant* a, const Participant* b) { return a->diedAt < b->diedAt; });
+				for (std::size_t i = 0; i < dead.size();) {
+					std::size_t j = i + 1;
+					while (j < dead.size() && dead[j]->diedAt - dead[j - 1]->diedAt <= kSameInstant) ++j;
+					if (j - i >= 2) strokes.push_back({ k.info.id, { dead.begin() + i, dead.begin() + j } });
+					i = j;
+				}
+			}
+			std::ranges::stable_sort(strokes, [](const Stroke& a, const Stroke& b) { return a.victims.size() > b.victims.size(); });
+			std::vector<std::string> out;
+			for (const auto& st : strokes) {
+				if (out.size() >= 3) break;
+				out.push_back(std::format("{} killed {} at once: {}.", CreditName(a_b, st.killer), st.victims.size(), Grouped(st.victims)));
+			}
+			return out;
+		}
+
 		int EnemyKills(const Battle& a_b, const Participant& a_p, Side a_foes, std::vector<const Participant*>* a_out = nullptr)
 		{
 			int n = 0;
@@ -484,6 +520,7 @@ namespace BSM
 				if (!p->dead || !a_b.Innocent(*p)) continue;
 				out.push_back(std::format("{}, an innocent who was not fighting anyone, {}.", p->info.name, KilledBy(a_b, p->killer)));
 			}
+			for (auto& m : KilledAtOnce(a_b)) out.push_back(std::move(m));
 			for (auto& m : Maimings(a_b)) out.push_back(std::move(m));
 			return out;
 		}
