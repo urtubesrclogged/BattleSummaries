@@ -23,6 +23,6 @@
     "en"
   ],
   "version": "1.2.0",
-  "changelog": "Friendly fire is told as an accident, or left out of the summaries: your choice. The mod's main settings are now on SkyrimNet's own settings page. A foe who kills the one that struck an ally down is no longer told as that ally's rescuer.",
+  "changelog": "Friendly fire is told as an accident, or left out: your choice. Settings are now on SkyrimNet's own settings page. Several enemies killed in one stroke get a mention.",
   "min_skyrimnet_version": "0.25.0"
 }
