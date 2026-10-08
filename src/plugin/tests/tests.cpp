@@ -428,6 +428,7 @@ namespace
 		Check(Has(told, "Lydia suffered: poisoned by Bandit (Weak Poison).") && Has(told, "Lydia was caught in their own side's attacks, by accident (friendly fire, not an attack on them): burned by fire by Kaira (Fireball)."),
 			"friendly fire is told apart, as an accident", told);
 		Check(Has(told, "brought to the very edge of death by Kaira (by accident: friendly fire)"), "brought low by an ally: an accident", told);
+		Check(Has(told, "Lydia was badly hurt") && Has(told, "Part of the damage Lydia took came from Kaira, on their own side: by accident (friendly fire, not an attack on them)."), "damage from an ally is named as an accident", told);
 		NarrativeOptions numbers;
 		numbers.showNumbers = true;
 		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", numbers));
@@ -437,6 +438,7 @@ namespace
 		quiet.ignoreFriendlyFire = true;
 		const auto hidden = SummaryText(BuildSummary(b, kLydia, "Lydia", quiet));
 		Check(!Has(hidden, "Fireball") && !Has(hidden, "friendly fire") && !Has(hidden, "by Kaira"), "friendly fire left out", hidden);
+		Check(Has(hidden, "Lydia took only light wounds") && !Has(hidden, "Part of the damage"), "and their damage is no part of the wounds told", hidden);
 		Check(Has(hidden, "Lydia suffered: poisoned by Bandit (Weak Poison).") && Has(hidden, "Lydia was brought to the very edge of death, with almost no health left."), "the rest still told", hidden);
 		Check(!Has(BuildMemory(b, quiet), "Kaira (by accident"), "and left out of what is remembered", BuildMemory(b, quiet));
 	}

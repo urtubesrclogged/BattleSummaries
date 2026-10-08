@@ -112,9 +112,23 @@ namespace BSM
 		}
 
 
-		std::string Wounds(const Participant& a_p, const NarrativeOptions& a_opt)
+		// the damage their own side did to them, and who did a part of it worth naming
+		float FriendlyDamage(const Battle& a_b, const Participant& a_p, std::vector<ActorId>* a_by = nullptr)
 		{
-			const float r = a_p.info.maxHealth > 0.0f ? a_p.damageTaken / a_p.info.maxHealth : 0.0f;
+			float sum = 0.0f;
+			for (const auto& [id, dmg] : a_p.damageFrom) {
+				if (id == 0 || !OwnSide(a_b, a_p, id)) continue;
+				sum += dmg;
+				if (a_by && dmg >= 0.05f * a_p.info.maxHealth) a_by->push_back(id);
+			}
+			return sum;
+		}
+
+		std::string Wounds(const Battle& a_b, const Participant& a_p, const NarrativeOptions& a_opt)
+		{
+			// with friendly fire left out, what their own side did to them is no part of the wounds told
+			const float taken = a_opt.ignoreFriendlyFire ? std::max(0.0f, a_p.damageTaken - FriendlyDamage(a_b, a_p)) : a_p.damageTaken;
+			const float r = a_p.info.maxHealth > 0.0f ? taken / a_p.info.maxHealth : 0.0f;
 			std::string w;
 			if (r < 0.03f) w = "took no damage worth the name";
 			else if (r < 0.25f) w = "took only light wounds";
@@ -122,7 +136,7 @@ namespace BSM
 			else if (r < 1.0f) w = "was badly hurt, taking nearly a full body's worth of damage";
 			else if (a_p.healingReceived > 0.0f) w = "took more damage than a body can survive in one go, and only kept going thanks to healing";
 			else w = "took a brutal amount of damage";
-			return w + Points(a_p.damageTaken, a_opt);
+			return w + Points(taken, a_opt);
 		}
 
 		std::string Dealt(const Battle& a_b, const Participant& a_p, const NarrativeOptions& a_opt)
@@ -346,7 +360,7 @@ namespace BSM
 			const auto&              n = a_p.info.name;
 			const Side               foes = Opposing(a_b.EffectiveSide(a_p));
 
-			out.push_back(std::format("{} {} and {}.", n, Wounds(a_p, a_opt), Dealt(a_b, a_p, a_opt)));
+			out.push_back(std::format("{} {} and {}.", n, Wounds(a_b, a_p, a_opt), Dealt(a_b, a_p, a_opt)));
 
 			if (a_p.dead) {
 				out.push_back(std::format("{} {}.", n, KilledBy(a_b, a_p.killer)));
@@ -385,6 +399,10 @@ namespace BSM
 			}
 			if (const auto bad = Effects(a_b, a_p, true, a_opt.maxEffects); !bad.empty()) out.push_back(std::format("{} suffered: {}.", n, bad));
 			if (!a_opt.ignoreFriendlyFire) {
+				std::vector<ActorId> by;
+				if (FriendlyDamage(a_b, a_p, &by) >= 0.1f * a_p.info.maxHealth && !by.empty()) {
+					out.push_back(std::format("Part of the damage {} took came from {}, on their own side: by accident (friendly fire, not an attack on them).", n, JoinList(Names(a_b, by))));
+				}
 				if (const auto own = FriendlyFire(a_b, a_p, a_opt.maxEffects); !own.empty()) {
 					out.push_back(std::format("{} was caught in their own side's attacks, by accident (friendly fire, not an attack on them): {}.", n, own));
 				}
@@ -415,7 +433,7 @@ namespace BSM
 		std::string OtherLine(const Battle& a_b, const Participant& a_p, const NarrativeOptions& a_opt)
 		{
 			const Side foes = Opposing(a_b.EffectiveSide(a_p));
-			std::vector<std::string> bits{ Wounds(a_p, a_opt) };
+			std::vector<std::string> bits{ Wounds(a_b, a_p, a_opt) };
 			if (a_p.dead) bits.push_back(KilledBy(a_b, a_p.killer));
 			else if (const auto brink = Brink(a_b, a_p, a_opt); !brink.empty()) {
 				bits.push_back(brink);
