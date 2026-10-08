@@ -604,6 +604,18 @@ namespace BSM::Tracker
 				JoinPair(a, b, pc);
 				if (!InBattle(a)) return;
 				g_current->Death(a_r.a, a_r.b, a_r.at);
+				// with what: the spell the killer's harmful magic came from just before, else the weapon in the killer's hand
+				if (auto* v = g_current->Find(a_r.a); v && v->dead && v->killer != 0 && v->killedWith.empty()) {
+					v->killedWith = g_current->RecentSpell(a_r.a, v->killer, a_r.at, 1.5);
+					if (v->killedWith.empty()) {
+						if (auto* k = Lookup(v->killer)) {
+							if (auto* held = k->GetEquippedObject(false); held && held->Is(RE::FormType::Weapon)) {
+								if (const char* n = held->GetName(); n && *n) v->killedWith = n;
+							}
+						}
+					}
+					SKSE::log::debug("death: {:08X} was killed with '{}'", a_r.a, v->killedWith);
+				}
 				WatchBody(a_r.a, a_r.at);
 				g_quiet = 0.0;
 				g_lastBlow = a_r.at;
@@ -635,7 +647,7 @@ namespace BSM::Tracker
 				SKSE::log::debug("effect: {:08X} {} by {:08X} ({}){}", a_r.a, kind->label, a_r.b, on.source, kind->heal ? " [heal]" : "");
 				// no caster: a potion heals its drinker; a hostile effect from nobody is a trap or a hazard
 				if (kind->heal) g_recentHeals.push_back({ a_r.a, b ? a_r.b : a_r.a, on.source, a_r.at });
-				else g_current->Effect(a_r.a, a_r.b, kind->label, on.source, kind->hostile);
+				else g_current->Effect(a_r.a, a_r.b, kind->label, on.source, kind->hostile, a_r.at);
 				break;
 			}
 			}

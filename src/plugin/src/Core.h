@@ -40,6 +40,7 @@ namespace BSM
 		ActorId     by{ 0 };
 		bool        hostile{ false };
 		int         count{ 0 };
+		double      lastAt{ -1.0 };  // when it last took hold; -1 = not known
 	};
 
 	// A lasting injury an injury mod put on a participant ("Leg Injury", "Major Injury").
@@ -80,6 +81,7 @@ namespace BSM
 
 		bool    dead{ false };
 		ActorId killer{ 0 };
+		std::string killedWith;  // the spell or weapon that did it ("Fireball", "Steel Greatsword"); empty = not known
 		double  diedAt{ -1.0 };
 
 		// what a dismemberment mod (or the game's own beheading) did to the body
@@ -129,7 +131,10 @@ namespace BSM
 		void Damage(ActorId a_target, ActorId a_attacker, float a_amount, float a_healthPctAfter, double a_now);
 		void Sample(ActorId a_id, float a_healthPct, double a_now);
 		void Heal(ActorId a_target, ActorId a_healer, float a_amount, const std::string& a_source, double a_now);
-		void Effect(ActorId a_target, ActorId a_by, const std::string& a_label, const std::string& a_source, bool a_hostile);
+		void Effect(ActorId a_target, ActorId a_by, const std::string& a_label, const std::string& a_source, bool a_hostile, double a_now = -1.0);
+		// the spell (or poison, or enchantment) whose harmful magic a_by last put on a_target within a_within seconds
+		// before a_now; empty when there was none
+		[[nodiscard]] std::string RecentSpell(ActorId a_target, ActorId a_by, double a_now, double a_within) const;
 		// a_carried: they already had it when they joined
 		void Injury(ActorId a_id, const std::string& a_name, bool a_carried, double a_now);
 		// the dead participant's body lost a limb (a_beheaded: the head)

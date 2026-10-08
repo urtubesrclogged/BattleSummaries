@@ -372,7 +372,13 @@ namespace BSM
 			std::vector<std::string> out;
 			for (const auto& st : strokes) {
 				if (out.size() >= 3) break;
-				out.push_back(std::format("{} killed {} at once: {}.", CreditName(a_b, st.killer), st.victims.size(), Grouped(st.victims)));
+				// how, when one spell or weapon did all of it
+				std::string how = st.victims.front()->killedWith;
+				for (const auto* v : st.victims) {
+					if (v->killedWith != how) how.clear();
+				}
+				out.push_back(std::format("{} killed {} at once{}: {}.", CreditName(a_b, st.killer), st.victims.size(), how.empty() ? std::string() : std::format(" with {}", how),
+					Grouped(st.victims)));
 			}
 			return out;
 		}

@@ -457,10 +457,14 @@ namespace
 		b.Join(Info(kGuard, "Bandit Archer", Side::kEnemy, 80));
 		b.Damage(kHero, kChief, 20, 0.9f, 1);
 		// a fireball: three die within the same half second
-		for (const auto id : { kBandit1, kBandit2, kChief }) b.Damage(id, kHero, 400, 0.0f, 5.0);
+		for (const auto id : { kBandit1, kBandit2, kChief }) {
+			b.Effect(id, kHero, "burned by fire", "Fireball", true, 4.9);
+			b.Damage(id, kHero, 400, 0.0f, 5.0);
+		}
 		b.Death(kBandit1, kHero, 5.0);
 		b.Death(kBandit2, kHero, 5.1);
 		b.Death(kChief, kHero, 5.4);
+		for (const auto id : { kBandit1, kBandit2, kChief }) b.Find(id)->killedWith = b.RecentSpell(id, kHero, 5.4, 1.5);
 		// Lydia's two kills are seconds apart: not at once
 		b.Damage(kMage, kLydia, 80, 0.0f, 8);
 		b.Death(kMage, kLydia, 8);
@@ -468,9 +472,12 @@ namespace
 		b.Death(kGuard, kLydia, 11);
 		b.endedAt = 15;
 		const auto told = SummaryText(BuildSummary(b, kLydia, "Lydia", {}));
-		Check(Has(told, "Kaira killed 3 at once: Bandit x2 and Bandit Chief."), "three in one stroke", told);
+		Check(Has(told, "Kaira killed 3 at once with Fireball: Bandit x2 and Bandit Chief."), "three in one stroke, and with what", told);
 		Check(!Has(told, "Lydia killed 2 at once"), "kills seconds apart are not at once", told);
-		Check(Has(BuildMemory(b, {}), "Kaira killed 3 at once: Bandit x2 and Bandit Chief."), "and it is remembered", BuildMemory(b, {}));
+		b.Find(kChief)->killedWith = "Steel Greatsword";  // not all by the same means: the means is not told
+		Check(Has(SummaryText(BuildSummary(b, kLydia, "Lydia", {})), "Kaira killed 3 at once: Bandit x2 and Bandit Chief."), "mixed means are left unsaid", told);
+		b.Find(kChief)->killedWith = "Fireball";
+		Check(Has(BuildMemory(b, {}), "Kaira killed 3 at once with Fireball: Bandit x2 and Bandit Chief."), "and it is remembered", BuildMemory(b, {}));
 	}
 
 	void TestDuration()

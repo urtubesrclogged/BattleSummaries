@@ -130,17 +130,30 @@ namespace BSM
 		if (auto* healer = Find(a_healer)) healer->healingDone += a_amount;
 	}
 
-	void Battle::Effect(ActorId a_target, ActorId a_by, const std::string& a_label, const std::string& a_source, bool a_hostile)
+	std::string Battle::RecentSpell(ActorId a_target, ActorId a_by, double a_now, double a_within) const
+	{
+		const auto* t = Find(a_target);
+		if (!t || a_by == 0) return {};
+		const EffectNote* best = nullptr;
+		for (const auto& e : t->effects) {
+			if (!e.hostile || e.by != a_by || e.source.empty() || e.lastAt < 0.0 || a_now - e.lastAt > a_within) continue;
+			if (!best || e.lastAt > best->lastAt) best = &e;
+		}
+		return best ? best->source : std::string();
+	}
+
+	void Battle::Effect(ActorId a_target, ActorId a_by, const std::string& a_label, const std::string& a_source, bool a_hostile, double a_now)
 	{
 		auto* t = Find(a_target);
 		if (!t || a_label.empty()) return;
 		for (auto& e : t->effects) {
 			if (e.label == a_label && e.by == a_by && e.source == a_source) {
+				e.lastAt = a_now;
 				++e.count;
 				return;
 			}
 		}
-		t->effects.push_back({ a_label, a_source, a_by, a_hostile, 1 });
+		t->effects.push_back({ a_label, a_source, a_by, a_hostile, 1, a_now });
 		if (a_hostile && a_by != a_target) {
 			if (auto* by = Find(a_by)) MarkFought(*Find(a_target), *by);  // Find again: push_back may have moved t
 		}
