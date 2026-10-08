@@ -425,10 +425,10 @@ namespace
 		b.endedAt = 10;
 
 		const auto told = SummaryText(BuildSummary(b, kLydia, "Lydia", {}));
-		Check(Has(told, "Lydia suffered: poisoned by Bandit (Weak Poison).") && Has(told, "Lydia was caught in their own side's attacks, by accident (friendly fire, not an attack on them): burned by fire by Kaira (Fireball)."),
+		Check(Has(told, "Lydia suffered: poisoned by Bandit (Weak Poison).") && Has(told, "Lydia was caught in their own side's attacks, by accident (friendly fire, not an attack on them): took part of their damage from Kaira; burned by fire by Kaira (Fireball)."),
 			"friendly fire is told apart, as an accident", told);
 		Check(Has(told, "brought to the very edge of death by Kaira (by accident: friendly fire)"), "brought low by an ally: an accident", told);
-		Check(Has(told, "Lydia was badly hurt") && Has(told, "Part of the damage Lydia took came from Kaira, on their own side: by accident (friendly fire, not an attack on them)."), "damage from an ally is named as an accident", told);
+		Check(Has(told, "Lydia was badly hurt") && !Has(told, "Part of the damage"), "damage from an ally is named as an accident", told);
 		NarrativeOptions numbers;
 		numbers.showNumbers = true;
 		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", numbers));

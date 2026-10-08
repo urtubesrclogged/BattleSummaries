@@ -399,13 +399,12 @@ namespace BSM
 			}
 			if (const auto bad = Effects(a_b, a_p, true, a_opt.maxEffects); !bad.empty()) out.push_back(std::format("{} suffered: {}.", n, bad));
 			if (!a_opt.ignoreFriendlyFire) {
+				// one line for all of it: the blows, then the magic
 				std::vector<ActorId> by;
-				if (FriendlyDamage(a_b, a_p, &by) >= 0.1f * a_p.info.maxHealth && !by.empty()) {
-					out.push_back(std::format("Part of the damage {} took came from {}, on their own side: by accident (friendly fire, not an attack on them).", n, JoinList(Names(a_b, by))));
-				}
-				if (const auto own = FriendlyFire(a_b, a_p, a_opt.maxEffects); !own.empty()) {
-					out.push_back(std::format("{} was caught in their own side's attacks, by accident (friendly fire, not an attack on them): {}.", n, own));
-				}
+				std::string          own;
+				if (FriendlyDamage(a_b, a_p, &by) >= 0.1f * a_p.info.maxHealth && !by.empty()) own = std::format("took part of their damage from {}", JoinList(Names(a_b, by)));
+				if (const auto magic = FriendlyFire(a_b, a_p, a_opt.maxEffects); !magic.empty()) own += (own.empty() ? "" : "; ") + magic;
+				if (!own.empty()) out.push_back(std::format("{} was caught in their own side's attacks, by accident (friendly fire, not an attack on them): {}.", n, own));
 			}
 			if (const auto good = Effects(a_b, a_p, false, a_opt.maxEffects); !good.empty()) out.push_back(std::format("{} was helped by: {}.", n, good));
 
