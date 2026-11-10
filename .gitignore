@@ -16,3 +16,6 @@ notes/
 build_log.txt
 # a player's own wording: never part of the mod
 config/SKSE/Plugins/BattleSummaries_Text.ini
+
+# Claude Code settings: settings.local.json keeps approved commands verbatim, secrets included. Never commit.
+.claude/
