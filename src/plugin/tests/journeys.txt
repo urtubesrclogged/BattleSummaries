@@ -1688,3 +1688,330 @@ Six Forsworn are too much: two fall, the party takes a beating and runs, and the
     Borgakh took solid wounds and dealt a fair share of their side's damage.
     Borgakh was never in serious danger.
     Borgakh killed none of the 2 who died on the other side.
+
+==== Allies: Neloth / solo (1) ====
+Five Dwemer automatons. Neloth (not a follower) fights them too, with his Ash Guardian: he strikes every one, his spells catch a follower, the guardian draws blows and finishes the second Dwarven Sphere.
+  [remembered event]
+    A battle was fought at the road to Whiterun. It lasted 12 seconds. Kaira fought against Dwarven Sphere x2 and Dwarven Spider x3. Neloth also fought them, apart from the party. All 5 enemies were killed. Who killed the enemies: Kaira 4; Neloth 1 (Dwarven Sphere, 1 through Ash Guardian).
+  [told to everyone]
+    A battle was fought at the road to Whiterun. It lasted 12 seconds.
+    Kaira fought against Dwarven Sphere x2 and Dwarven Spider x3.
+    Neloth also fought them, apart from the party.
+    All 5 enemies were killed.
+    Who killed the enemies: Kaira 4; Neloth 1 (Dwarven Sphere, 1 through Ash Guardian).
+  [a witness, about the fighters]
+    Kaira: took solid wounds; dealt all the damage on their side; was never near death; killed 4 of the other side.
+  [Neloth (an ally), about themself]
+    Neloth took no damage worth the name and dealt a fair share of their side's damage.
+    Neloth was never in serious danger.
+    Neloth killed 1 of the 5 who died on the other side: Dwarven Sphere.
+    1 of them through Ash Guardian.
+  [Neloth (an ally), about the party]
+    Kaira: took solid wounds; dealt all the damage on their side; was never near death; killed 4 of the other side.
+
+==== Allies: Neloth / duo (2) ====
+Five Dwemer automatons. Neloth (not a follower) fights them too, with his Ash Guardian: he strikes every one, his spells catch a follower, the guardian draws blows and finishes the second Dwarven Sphere.
+  [remembered event]
+    A battle was fought at the road to Whiterun. It lasted 16 seconds. Kaira and Lydia fought against Dwarven Sphere x2 and Dwarven Spider x3. Neloth also fought them, apart from the party. All 5 enemies were killed. Who killed the enemies: Kaira 2 (Dwarven Sphere and Dwarven Spider); Lydia 2 (Dwarven Spider x2); Neloth 1 (Dwarven Sphere, 1 through Ash Guardian). The party shared the damage to the enemy evenly. The enemy's blows fell evenly across the party.
+  [told to everyone]
+    A battle was fought at the road to Whiterun. It lasted 16 seconds.
+    Kaira and Lydia fought against Dwarven Sphere x2 and Dwarven Spider x3.
+    Neloth also fought them, apart from the party.
+    All 5 enemies were killed.
+    Who killed the enemies: Kaira 2 (Dwarven Sphere and Dwarven Spider); Lydia 2 (Dwarven Spider x2); Neloth 1 (Dwarven Sphere, 1 through Ash Guardian).
+    The party shared the damage to the enemy evenly.
+    The enemy's blows fell evenly across the party.
+  [Lydia, about themself]
+    Lydia took solid wounds and dealt a fair share of their side's damage.
+    Lydia was never in serious danger.
+    Lydia was caught in the crossfire, by accident (not an attack on them): took part of their damage from Neloth.
+    Lydia killed 2 of the 5 who died on the other side: Dwarven Spider x2.
+  [Lydia, about the others]
+    Kaira: took solid wounds; dealt a fair share of their side's damage; was never near death; killed 2 of the other side.
+  [Neloth (an ally), about themself]
+    Neloth took no damage worth the name and dealt a large share of their side's damage.
+    Neloth was never in serious danger.
+    Neloth killed 1 of the 5 who died on the other side: Dwarven Sphere.
+    1 of them through Ash Guardian.
+  [Neloth (an ally), about the party]
+    Kaira: took solid wounds; dealt a fair share of their side's damage; was never near death; killed 2 of the other side.
+    Lydia: took solid wounds; dealt a fair share of their side's damage; was never near death; killed 2 of the other side.
+
+==== Allies: Neloth / party (5) ====
+Five Dwemer automatons. Neloth (not a follower) fights them too, with his Ash Guardian: he strikes every one, his spells catch a follower, the guardian draws blows and finishes the second Dwarven Sphere.
+  [remembered event]
+    A battle was fought at the road to Whiterun. It lasted 27 seconds. Kaira, Lydia, Marcurio, Aela and Brelyna fought against Dwarven Sphere x2 and Dwarven Spider x3. Neloth also fought them, apart from the party. All 5 enemies were killed. Who killed the enemies: Kaira 1 (Dwarven Sphere); Neloth 1 (Dwarven Sphere, 1 through Ash Guardian); Lydia 1 (Dwarven Spider); Marcurio 1 (Dwarven Spider); Aela 1 (Dwarven Spider). Kaira led the party's damage to the enemy. Marcurio, Aela and Lydia also did a real part of it. Lydia and Kaira took the enemy's blows between them.
+  [told to everyone]
+    A battle was fought at the road to Whiterun. It lasted 27 seconds.
+    Kaira, Lydia, Marcurio, Aela and Brelyna fought against Dwarven Sphere x2 and Dwarven Spider x3.
+    Neloth also fought them, apart from the party.
+    All 5 enemies were killed.
+    Who killed the enemies: Kaira 1 (Dwarven Sphere); Neloth 1 (Dwarven Sphere, 1 through Ash Guardian); Lydia 1 (Dwarven Spider); Marcurio 1 (Dwarven Spider); Aela 1 (Dwarven Spider).
+    Kaira led the party's damage to the enemy.
+    Marcurio, Aela and Lydia also did a real part of it.
+    Lydia and Kaira took the enemy's blows between them.
+  [Lydia, about themself]
+    Lydia was badly hurt, taking nearly a full body's worth of damage and dealt a fair share of their side's damage.
+    Lydia was hurt badly at the worst of it, but was never at death's door.
+    Lydia was caught in the crossfire, by accident (not an attack on them): took part of their damage from Neloth.
+    Lydia killed 1 of the 5 who died on the other side: Dwarven Spider.
+  [Lydia, about the others]
+    Kaira: took solid wounds; dealt a large share of their side's damage; was never near death; killed 1 of the other side.
+    Marcurio: took solid wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Aela: took only light wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Brelyna: took only light wounds; dealt only a small part of their side's damage; was never near death; killed none of the other side.
+  [Marcurio, about themself]
+    Marcurio took solid wounds and dealt a fair share of their side's damage.
+    Marcurio was never in serious danger.
+    Marcurio killed 1 of the 5 who died on the other side: Dwarven Spider.
+  [Aela, about themself]
+    Aela took only light wounds and dealt a fair share of their side's damage.
+    Aela was never in serious danger.
+    Aela killed 1 of the 5 who died on the other side: Dwarven Spider.
+  [Brelyna, about themself]
+    Brelyna took only light wounds and dealt only a small part of their side's damage.
+    Brelyna was never in serious danger.
+    Brelyna killed none of the 5 who died on the other side.
+  [Neloth (an ally), about themself]
+    Neloth took no damage worth the name and dealt a large share of their side's damage.
+    Neloth was never in serious danger.
+    Neloth killed 1 of the 5 who died on the other side: Dwarven Sphere.
+    1 of them through Ash Guardian.
+  [Neloth (an ally), about the party]
+    Kaira: took solid wounds; dealt a large share of their side's damage; was never near death; killed 1 of the other side.
+    Lydia: was badly hurt, taking nearly a full body's worth of damage; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Marcurio: took solid wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Aela: took only light wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Brelyna: took only light wounds; dealt only a small part of their side's damage; was never near death; killed none of the other side.
+
+==== Allies: Neloth / large (10) ====
+Five Dwemer automatons. Neloth (not a follower) fights them too, with his Ash Guardian: he strikes every one, his spells catch a follower, the guardian draws blows and finishes the second Dwarven Sphere.
+  [remembered event]
+    A battle was fought at the road to Whiterun. It lasted 45 seconds. Kaira, Lydia, Marcurio, Aela and 6 others fought against Dwarven Sphere x2 and Dwarven Spider x3. Neloth also fought them, apart from the party. All 5 enemies were killed. Who killed the enemies: Kaira 1 (Dwarven Sphere); Neloth 1 (Dwarven Sphere, 1 through Ash Guardian); Lydia 1 (Dwarven Spider); Marcurio 1 (Dwarven Spider); Aela 1 (Dwarven Spider). Kaira led the party's damage to the enemy. Lydia, Aela, J'zargo and 5 others also did a real part of it. Lydia, Uthgerd, Borgakh and 2 others took the enemy's blows between them.
+  [told to everyone]
+    A battle was fought at the road to Whiterun. It lasted 45 seconds.
+    Kaira, Lydia, Marcurio, Aela and 6 others fought against Dwarven Sphere x2 and Dwarven Spider x3.
+    Neloth also fought them, apart from the party.
+    All 5 enemies were killed.
+    Who killed the enemies: Kaira 1 (Dwarven Sphere); Neloth 1 (Dwarven Sphere, 1 through Ash Guardian); Lydia 1 (Dwarven Spider); Marcurio 1 (Dwarven Spider); Aela 1 (Dwarven Spider).
+    Kaira led the party's damage to the enemy.
+    Lydia, Aela, J'zargo and 5 others also did a real part of it.
+    Lydia, Uthgerd, Borgakh and 2 others took the enemy's blows between them.
+  [Lydia, about themself]
+    Lydia took solid wounds and dealt a fair share of their side's damage.
+    Lydia was never in serious danger.
+    Lydia was caught in the crossfire, by accident (not an attack on them): took part of their damage from Neloth.
+    Lydia killed 1 of the 5 who died on the other side: Dwarven Spider.
+  [Lydia, about the others]
+    Kaira: took solid wounds; dealt a large share of their side's damage; was never near death; killed 1 of the other side.
+    Marcurio: took only light wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Aela: took only light wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Brelyna: took only light wounds; dealt only a small part of their side's damage; was never near death; killed none of the other side.
+    J'zargo: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Uthgerd: took solid wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+  [Marcurio, about themself]
+    Marcurio took only light wounds and dealt a fair share of their side's damage.
+    Marcurio was never in serious danger.
+    Marcurio killed 1 of the 5 who died on the other side: Dwarven Spider.
+  [Aela, about themself]
+    Aela took only light wounds and dealt a fair share of their side's damage.
+    Aela was never in serious danger.
+    Aela killed 1 of the 5 who died on the other side: Dwarven Spider.
+  [Brelyna, about themself]
+    Brelyna took only light wounds and dealt only a small part of their side's damage.
+    Brelyna was never in serious danger.
+    Brelyna killed none of the 5 who died on the other side.
+  [J'zargo, about themself]
+    J'zargo took only light wounds and dealt a fair share of their side's damage.
+    J'zargo was never in serious danger.
+    J'zargo killed none of the 5 who died on the other side.
+  [Uthgerd, about themself]
+    Uthgerd took solid wounds and dealt a fair share of their side's damage.
+    Uthgerd was never in serious danger.
+    Uthgerd killed none of the 5 who died on the other side.
+  [Jenassa, about themself]
+    Jenassa took only light wounds and dealt a fair share of their side's damage.
+    Jenassa was never in serious danger.
+    Jenassa killed none of the 5 who died on the other side.
+  [Erik, about themself]
+    Erik took solid wounds and dealt a fair share of their side's damage.
+    Erik was never in serious danger.
+    Erik killed none of the 5 who died on the other side.
+  [Borgakh, about themself]
+    Borgakh took solid wounds and dealt a fair share of their side's damage.
+    Borgakh was never in serious danger.
+    Borgakh killed none of the 5 who died on the other side.
+  [Neloth (an ally), about themself]
+    Neloth took no damage worth the name and dealt a large share of their side's damage.
+    Neloth was never in serious danger.
+    Neloth killed 1 of the 5 who died on the other side: Dwarven Sphere.
+    1 of them through Ash Guardian.
+  [Neloth (an ally), about the party]
+    Kaira: took solid wounds; dealt a large share of their side's damage; was never near death; killed 1 of the other side.
+    Lydia: took solid wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Marcurio: took only light wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Aela: took only light wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Brelyna: took only light wounds; dealt only a small part of their side's damage; was never near death; killed none of the other side.
+    J'zargo: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+
+==== Allies: guards and a dragon / solo (1) ====
+A Blood Dragon at Whiterun. Six Whiterun guards fight it too: their arrows do a good part of the damage, and the dragon kills one of them. The party kills it.
+  [remembered event]
+    A battle was fought at the road to Whiterun. It lasted 5 seconds. Kaira fought against Blood Dragon. Whiterun Guard x6 also fought them, apart from the party. The one enemy was killed. Who killed the enemies: Kaira 1 (Blood Dragon). The third Whiterun Guard was killed by Blood Dragon.
+  [told to everyone]
+    A battle was fought at the road to Whiterun. It lasted 5 seconds.
+    Kaira fought against Blood Dragon.
+    Whiterun Guard x6 also fought them, apart from the party.
+    The one enemy was killed.
+    Who killed the enemies: Kaira 1 (Blood Dragon).
+    The third Whiterun Guard was killed by Blood Dragon.
+  [a witness, about the fighters]
+    Kaira: took solid wounds; dealt all the damage on their side; was never near death; killed 1 of the other side.
+  [Whiterun Guard (an ally), about themself]
+    Whiterun Guard took no damage worth the name and dealt only a small part of their side's damage.
+    Whiterun Guard was never in serious danger.
+    Whiterun Guard killed none of the 1 who died on the other side.
+  [Whiterun Guard (an ally), about the party]
+    Kaira: took solid wounds; dealt all the damage on their side; was never near death; killed 1 of the other side.
+
+==== Allies: guards and a dragon / duo (2) ====
+A Blood Dragon at Whiterun. Six Whiterun guards fight it too: their arrows do a good part of the damage, and the dragon kills one of them. The party kills it.
+  [remembered event]
+    A battle was fought at the road to Whiterun. It lasted 6 seconds. Kaira and Lydia fought against Blood Dragon. Whiterun Guard x6 also fought them, apart from the party. The one enemy was killed. Who killed the enemies: Kaira 1 (Blood Dragon). The party shared the damage to the enemy evenly. The enemy's blows fell evenly across the party. The third Whiterun Guard was killed by Blood Dragon.
+  [told to everyone]
+    A battle was fought at the road to Whiterun. It lasted 6 seconds.
+    Kaira and Lydia fought against Blood Dragon.
+    Whiterun Guard x6 also fought them, apart from the party.
+    The one enemy was killed.
+    Who killed the enemies: Kaira 1 (Blood Dragon).
+    The party shared the damage to the enemy evenly.
+    The enemy's blows fell evenly across the party.
+    The third Whiterun Guard was killed by Blood Dragon.
+  [Lydia, about themself]
+    Lydia took solid wounds and dealt a fair share of their side's damage.
+    Lydia was never in serious danger.
+    Lydia killed none of the 1 who died on the other side.
+  [Lydia, about the others]
+    Kaira: took solid wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+  [Whiterun Guard (an ally), about themself]
+    Whiterun Guard took no damage worth the name and dealt only a small part of their side's damage.
+    Whiterun Guard was never in serious danger.
+    Whiterun Guard killed none of the 1 who died on the other side.
+  [Whiterun Guard (an ally), about the party]
+    Kaira: took solid wounds; dealt a fair share of their side's damage; was never near death; killed 1 of the other side.
+    Lydia: took solid wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+
+==== Allies: guards and a dragon / party (5) ====
+A Blood Dragon at Whiterun. Six Whiterun guards fight it too: their arrows do a good part of the damage, and the dragon kills one of them. The party kills it.
+  [remembered event]
+    A battle was fought at the road to Whiterun. It lasted 8 seconds. Kaira, Lydia, Marcurio, Aela and Brelyna fought against Blood Dragon. Whiterun Guard x6 also fought them, apart from the party. The one enemy was killed. Who killed the enemies: Kaira 1 (Blood Dragon). Kaira led the party's damage to the enemy. Lydia, Marcurio and Aela also did a real part of it. Lydia and Kaira took the enemy's blows between them. The third Whiterun Guard was killed by Blood Dragon.
+  [told to everyone]
+    A battle was fought at the road to Whiterun. It lasted 8 seconds.
+    Kaira, Lydia, Marcurio, Aela and Brelyna fought against Blood Dragon.
+    Whiterun Guard x6 also fought them, apart from the party.
+    The one enemy was killed.
+    Who killed the enemies: Kaira 1 (Blood Dragon).
+    Kaira led the party's damage to the enemy.
+    Lydia, Marcurio and Aela also did a real part of it.
+    Lydia and Kaira took the enemy's blows between them.
+    The third Whiterun Guard was killed by Blood Dragon.
+  [Lydia, about themself]
+    Lydia took solid wounds and dealt a fair share of their side's damage.
+    Lydia was never in serious danger.
+    Lydia killed none of the 1 who died on the other side.
+  [Lydia, about the others]
+    Kaira: took solid wounds; dealt a large share of their side's damage; was never near death; killed 1 of the other side.
+    Marcurio: took solid wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Aela: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Brelyna: took only light wounds; dealt only a small part of their side's damage; was never near death; killed none of the other side.
+  [Marcurio, about themself]
+    Marcurio took solid wounds and dealt a fair share of their side's damage.
+    Marcurio was never in serious danger.
+    Marcurio killed none of the 1 who died on the other side.
+  [Aela, about themself]
+    Aela took only light wounds and dealt a fair share of their side's damage.
+    Aela was never in serious danger.
+    Aela killed none of the 1 who died on the other side.
+  [Brelyna, about themself]
+    Brelyna took only light wounds and dealt only a small part of their side's damage.
+    Brelyna was never in serious danger.
+    Brelyna killed none of the 1 who died on the other side.
+  [Whiterun Guard (an ally), about themself]
+    Whiterun Guard took no damage worth the name and dealt only a small part of their side's damage.
+    Whiterun Guard was never in serious danger.
+    Whiterun Guard killed none of the 1 who died on the other side.
+  [Whiterun Guard (an ally), about the party]
+    Kaira: took solid wounds; dealt a large share of their side's damage; was never near death; killed 1 of the other side.
+    Lydia: took solid wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Marcurio: took solid wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Aela: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Brelyna: took only light wounds; dealt only a small part of their side's damage; was never near death; killed none of the other side.
+
+==== Allies: guards and a dragon / large (10) ====
+A Blood Dragon at Whiterun. Six Whiterun guards fight it too: their arrows do a good part of the damage, and the dragon kills one of them. The party kills it.
+  [remembered event]
+    A battle was fought at the road to Whiterun. It lasted 12 seconds. Kaira, Lydia, Marcurio, Aela and 6 others fought against Blood Dragon. Whiterun Guard x6 also fought them, apart from the party. The one enemy was killed. Who killed the enemies: Kaira 1 (Blood Dragon). Kaira led the party's damage to the enemy. Lydia, Marcurio, Aela and 5 others also did a real part of it. Lydia, Uthgerd, Borgakh and 2 others took the enemy's blows between them. The third Whiterun Guard was killed by Blood Dragon.
+  [told to everyone]
+    A battle was fought at the road to Whiterun. It lasted 12 seconds.
+    Kaira, Lydia, Marcurio, Aela and 6 others fought against Blood Dragon.
+    Whiterun Guard x6 also fought them, apart from the party.
+    The one enemy was killed.
+    Who killed the enemies: Kaira 1 (Blood Dragon).
+    Kaira led the party's damage to the enemy.
+    Lydia, Marcurio, Aela and 5 others also did a real part of it.
+    Lydia, Uthgerd, Borgakh and 2 others took the enemy's blows between them.
+    The third Whiterun Guard was killed by Blood Dragon.
+  [Lydia, about themself]
+    Lydia took solid wounds and dealt a fair share of their side's damage.
+    Lydia was never in serious danger.
+    Lydia killed none of the 1 who died on the other side.
+  [Lydia, about the others]
+    Kaira: took solid wounds; dealt a large share of their side's damage; was never near death; killed 1 of the other side.
+    Marcurio: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Aela: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Brelyna: took only light wounds; dealt only a small part of their side's damage; was never near death; killed none of the other side.
+    J'zargo: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Uthgerd: took solid wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+  [Marcurio, about themself]
+    Marcurio took only light wounds and dealt a fair share of their side's damage.
+    Marcurio was never in serious danger.
+    Marcurio killed none of the 1 who died on the other side.
+  [Aela, about themself]
+    Aela took only light wounds and dealt a fair share of their side's damage.
+    Aela was never in serious danger.
+    Aela killed none of the 1 who died on the other side.
+  [Brelyna, about themself]
+    Brelyna took only light wounds and dealt only a small part of their side's damage.
+    Brelyna was never in serious danger.
+    Brelyna killed none of the 1 who died on the other side.
+  [J'zargo, about themself]
+    J'zargo took only light wounds and dealt a fair share of their side's damage.
+    J'zargo was never in serious danger.
+    J'zargo killed none of the 1 who died on the other side.
+  [Uthgerd, about themself]
+    Uthgerd took solid wounds and dealt a fair share of their side's damage.
+    Uthgerd was never in serious danger.
+    Uthgerd killed none of the 1 who died on the other side.
+  [Jenassa, about themself]
+    Jenassa took only light wounds and dealt a fair share of their side's damage.
+    Jenassa was never in serious danger.
+    Jenassa killed none of the 1 who died on the other side.
+  [Erik, about themself]
+    Erik took solid wounds and dealt a fair share of their side's damage.
+    Erik was never in serious danger.
+    Erik killed none of the 1 who died on the other side.
+  [Borgakh, about themself]
+    Borgakh took solid wounds and dealt a fair share of their side's damage.
+    Borgakh was never in serious danger.
+    Borgakh killed none of the 1 who died on the other side.
+  [Whiterun Guard (an ally), about themself]
+    Whiterun Guard took no damage worth the name and dealt a fair share of their side's damage.
+    Whiterun Guard was never in serious danger.
+    Whiterun Guard killed none of the 1 who died on the other side.
+  [Whiterun Guard (an ally), about the party]
+    Kaira: took solid wounds; dealt a large share of their side's damage; was never near death; killed 1 of the other side.
+    Lydia: took solid wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Marcurio: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Aela: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.
+    Brelyna: took only light wounds; dealt only a small part of their side's damage; was never near death; killed none of the other side.
+    J'zargo: took only light wounds; dealt a fair share of their side's damage; was never near death; killed none of the other side.

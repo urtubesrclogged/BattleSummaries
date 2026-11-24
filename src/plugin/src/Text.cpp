@@ -13,6 +13,8 @@ namespace BSM::Text
 			// ---------------------------------------------------------------- the battle as a whole
 			{ "Battle", "battle.underway", "A battle is being fought{at_place} right now.", "{at_place} is empty or a space and battle.at" },
 			{ "Battle", "battle.fought", "A battle was fought{at_place}. It lasted {duration}.", "" },
+			{ "Battle", "battle.allies", "{allies} also fought them, apart from the party.",
+				"someone not of the party who fought the party's enemies (Neloth at Nchardak, Whiterun's guards at a dragon)" },
 			{ "Battle", "battle.fought_clashes", "A battle was fought{at_place}. It was fought in {count} clashes over {duration}.",
 				"fighting that stopped and started again within the wind-down: a dungeon cleared room by room, enemies arriving in groups" },
 			{ "Battle", "battle.at", "at {place}", "" },

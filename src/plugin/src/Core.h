@@ -17,7 +17,11 @@ namespace BSM
 	{
 		kPlayer,  // the player, followers, and anything they command
 		kEnemy,   // hostile to the player
-		kOther    // neither: guards, bystanders, wildlife fighting each other
+		kOther,   // neither: guards, bystanders, wildlife fighting each other
+		// Only as told (EffectiveSide), never as joined: someone who is not the player's but fought the player's enemies on
+		// their own account (Neloth at Nchardak, Whiterun's guards at a dragon). Listed apart from the party, with their own
+		// kills, and kept out of the party's shares and roles.
+		kAlly
 	};
 
 	struct ActorInfo
@@ -37,6 +41,9 @@ namespace BSM
 		// the player's side, and its end is no death. Its master is in `master` when the game names one. Decided when it first
 		// joins: a corpse a necromancer raises later keeps its first death as the kill it was.
 		bool        summon{ false };
+		// The game gave no name; `name` holds the stand-in ("someone"), which never replaces a name already known: a body
+		// cleaned up mid-battle reports nameless, and Isidor was told as "someone" (Whiterun, 1.6.0-beta-1).
+		bool        unnamed{ false };
 	};
 
 	// One kind of magic applied to a participant by one actor: "burned by fire" by 00012345 with "Flames", 4 times.
@@ -124,6 +131,10 @@ namespace BSM
 		double roseAt{ -1.0 };
 		double lastHealAt{ -1.0 };
 
+		// Joined as neither side and turned hostile to the player later (a townsman the town turned on the party with). An
+		// enemy from then on, unless all they fought was the player's enemies (EffectiveSide).
+		bool turnedHostile{ false };
+
 		bool    dead{ false };
 		ActorId killer{ 0 };
 		std::string killedWith;  // the spell or weapon that did it ("Fireball", "Steel Greatsword"); empty = not known
@@ -198,6 +209,10 @@ namespace BSM
 		// in force (a magnitude, its conditions met) and a_target lost health to its caster while it was. The other effects
 		// of its spell (a frost spell's slow) go with it. Judged when told: the damage can come after the effect.
 		[[nodiscard]] bool Landed(const Participant& a_target, const EffectNote& a_e) const;
+		// A harmless effect one caster put on many around them, their own kind and others alike: an aura or a pulse, not
+		// something done to anyone. Seen in Whiterun: Durak's "armor weakened" took hold 448 times in a minute, on the party,
+		// the townsfolk, the chickens and the cows. Not told, and no sign that anyone fought (Landed).
+		[[nodiscard]] bool Aura(const EffectNote& a_e) const;
 		// the spell (or poison, or enchantment) whose harmful magic a_by last put on a_target within a_within seconds
 		// before a_now; empty when there was none
 		[[nodiscard]] std::string RecentSpell(ActorId a_target, ActorId a_by, double a_now, double a_within) const;
@@ -209,6 +224,11 @@ namespace BSM
 		// a potion (or poison) taking hold; the several effects of one potion, arriving together, are one use
 		void UsedItem(ActorId a_id, const std::string& a_name, bool a_poison, double a_now);
 		[[nodiscard]] bool Fought(const Participant& a_p) const;  // did anything hostile in this battle
+		// Something in this battle reached them: a blow, a death, or a harmful effect that took hold (an aura is none).
+		[[nodiscard]] bool Touched(const Participant& a_p) const;
+		// They did something in it themselves: a blow, a kill, or a harmful effect that took hold on someone (their
+		// summons' doing counts). Being in combat (armed, came to fight) is not a deed.
+		[[nodiscard]] bool Acted(const Participant& a_p) const;
 		// Harmed or killed in it without being a fighter: not on the player's side, not someone who would fight the player,
 		// and did nothing hostile. Left out of the battle altogether with omitBystanders.
 		[[nodiscard]] bool NonCombatant(const Participant& a_p) const;
@@ -217,10 +237,10 @@ namespace BSM
 		void Up(ActorId a_id);
 		void Death(ActorId a_victim, ActorId a_killer, double a_now);
 
-		// The side used for telling the story: an "other" who fought the player's side counts as an enemy, one who only
-		// fought the player's enemies (or was only attacked by them) counts with the player's side. One who fought nobody
-		// and was struck only by the player's side is an enemy, unless the party was fighting real enemies (HasEnemies):
-		// then they were caught in the crossfire, and stay an "other": a bystander.
+		// The side used for telling the story. An "other" who struck the player's enemies (or was only attacked by them) is
+		// an ally, whatever their crossfire did to the party; a summon stands where its master stands. One who struck only
+		// the player's side is an enemy, unless the party was fighting real enemies (HasEnemies): then it was crossfire, and
+		// they stay an "other". So is one who fought nobody and was struck only by the player's side.
 		[[nodiscard]] Side EffectiveSide(const Participant& a_p) const;
 
 		// Took part in this battle. The player's side always counts; anyone else must have fought the player's side, or
@@ -241,6 +261,7 @@ namespace BSM
 		[[nodiscard]] int   Dead(Side a_side) const;
 
 	private:
+		[[nodiscard]] Side EffectiveSide(const Participant& a_p, int a_depth) const;
 		void MarkCritical(Participant& a_p, double a_now);
 		void MarkFought(Participant& a_x, Participant& a_y);
 	};

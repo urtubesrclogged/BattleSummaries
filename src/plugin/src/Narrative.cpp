@@ -109,9 +109,9 @@ namespace BSM
 			std::vector<const Participant*> out;
 			for (const auto& p : a_b.participants) {
 				if (!a_b.Involved(p) || a_b.EffectiveSide(p) != a_side) continue;
-				// a summon on the player's side is its master's doing, not a fighter of its own: its kills are told with the
-				// master's, and its end (a dismissal as often as a death) is never a loss
-				if (a_side == Side::kPlayer && p.info.summon) continue;
+				// a summon on the player's side (or an ally's) is its master's doing, not a fighter of its own: its kills are told
+				// with the master's, and its end (a dismissal as often as a death) is never a loss
+				if ((a_side == Side::kPlayer || a_side == Side::kAlly) && p.info.summon) continue;
 				out.push_back(&p);
 			}
 			std::ranges::stable_partition(out, [](const Participant* p) { return p->info.isPlayer; });  // the player leads the list
@@ -126,14 +126,22 @@ namespace BSM
 			return a_p.info.side == Side::kOther && a_p.damageDealt <= 0.0f && a_b.HasEnemies() && a_b.EffectiveSide(a_p) == Side::kOther;
 		}
 
-		// someone else, on the same side: what they did to a_p was friendly fire. So is what the player's side did to a
-		// bystander (a townsman at the edge of a fireball aimed at bandits): the same accident, told or left out the same way.
+		// The same side, or the player's side and an ally: what one does to the other is an accident, not an attack.
+		bool Friends(Side a_x, Side a_y)
+		{
+			const auto ours = [](Side s) { return s == Side::kPlayer || s == Side::kAlly; };
+			return a_x == a_y || (ours(a_x) && ours(a_y));
+		}
+
+		// someone else, on the same side (or the party and an ally): what they did to a_p was friendly fire. So is what the
+		// player's side did to a bystander (a townsman at the edge of a fireball aimed at bandits): the same accident, told
+		// or left out the same way.
 		bool OwnSide(const Battle& a_b, const Participant& a_p, ActorId a_other)
 		{
 			const auto* q = a_b.Find(a_other);
 			if (!q || q->info.id == a_p.info.id) return false;
 			const Side theirs = a_b.EffectiveSide(*q);
-			return theirs == a_b.EffectiveSide(a_p) || (theirs == Side::kPlayer && Bystander(a_b, a_p));
+			return Friends(theirs, a_b.EffectiveSide(a_p)) || ((theirs == Side::kPlayer || theirs == Side::kAlly) && Bystander(a_b, a_p));
 		}
 
 		// the damage a participant did to the other side: what they did to their own does not make them a fighter
@@ -142,7 +150,7 @@ namespace BSM
 			const Side side = a_b.EffectiveSide(a_p);
 			float      sum = 0.0f;
 			for (const auto& q : a_b.participants) {
-				if (q.info.id == a_p.info.id || a_b.EffectiveSide(q) == side) continue;
+				if (q.info.id == a_p.info.id || Friends(a_b.EffectiveSide(q), side)) continue;
 				if (const auto it = q.damageFrom.find(a_p.info.id); it != q.damageFrom.end()) sum += it->second;
 			}
 			return sum;
@@ -227,11 +235,13 @@ namespace BSM
 		std::string Dealt(const Battle& a_b, const Participant& a_p, const NarrativeOptions& a_opt)
 		{
 			const Side  side = a_b.EffectiveSide(a_p);
-			const float total = SideDealtToFoes(a_b, side);
+			// an ally's part is of all who fought the enemy, the party with them: alone among the allies is not "all of it"
+			const bool  ally = side == Side::kAlly;
+			const float total = SideDealtToFoes(a_b, side) + (ally ? SideDealtToFoes(a_b, Side::kPlayer) : 0.0f);
 			const float dealt = PartyDealt(a_b, a_p);
 			if (dealt <= 0.0f) return T("dealt.none");
 			std::string w;
-			const auto  n = OnSide(a_b, side).size();
+			const auto  n = OnSide(a_b, side).size() + (ally ? OnSide(a_b, Side::kPlayer).size() : 0);
 			if (n <= 1 || total <= 0.0f) w = T("dealt.all");
 			else {
 				// against what each would have done in an even split, so a fair part of a large party's work is not "small"
@@ -278,7 +288,7 @@ namespace BSM
 			}
 			for (const auto id : assailants) {
 				const auto* a = a_b.Find(id);
-				if (!a || !a->dead || a->diedAt < a_p.criticalAt || a_b.EffectiveSide(*a) == mine) continue;
+				if (!a || !a->dead || a->diedAt < a_p.criticalAt || Friends(a_b.EffectiveSide(*a), mine)) continue;
 				// the one whose blows did it "had struck down" them; another who only did a large part of the damage had wounded them
 				const bool downedThem = id == a_p.broughtLowBy;
 				const auto assailant = NameOf(a_b, a->info.id);
@@ -338,7 +348,7 @@ namespace BSM
 		bool OwnSideKill(const Battle& a_b, const Participant& a_v)
 		{
 			const auto* k = a_b.Find(a_v.killer);
-			return k && k->info.id != a_v.info.id && a_b.EffectiveSide(*k) == a_b.EffectiveSide(a_v);
+			return k && k->info.id != a_v.info.id && Friends(a_b.EffectiveSide(*k), a_b.EffectiveSide(a_v));
 		}
 
 		std::string KillTally(const Battle& a_b, Side a_victims, bool a_summons = false)
@@ -629,8 +639,13 @@ namespace BSM
 				std::string          own;
 				if (FriendlyDamage(a_b, a_p, &by) >= 0.1f * a_p.info.maxHealth && !by.empty()) own = F("friendly.damage", { { "names", JoinList(Names(a_b, by)) } });
 				if (const auto magic = FriendlyFire(a_b, a_p, a_opt.maxEffects); !magic.empty()) own += (own.empty() ? "" : "; ") + magic;
-				// a bystander was on nobody's side: not "their own side's attacks"
-				if (!own.empty()) out.push_back(F(Bystander(a_b, a_p) ? "friendly.crossfire_line" : "friendly.line", { { "name", n }, { "what", own } }));
+				// a bystander was on nobody's side, and an ally fights beside the party, not in it: not "their own side's attacks"
+				const Side mine = a_b.EffectiveSide(a_p);
+				// ...nor is what an ally's blow or spell did to one of the party (Durak's spell weakening Dave's armor)
+				const auto notMine = [&](ActorId id) { const auto* q = a_b.Find(id); return q && a_b.EffectiveSide(*q) != mine; };
+				const bool apart = Bystander(a_b, a_p) || mine == Side::kAlly || std::ranges::any_of(by, notMine) ||
+				                   std::ranges::any_of(a_p.effects, [&](const EffectNote& e) { return e.hostile && OwnSide(a_b, a_p, e.by) && notMine(e.by); });
+				if (!own.empty()) out.push_back(F(apart ? "friendly.crossfire_line" : "friendly.line", { { "name", n }, { "what", own } }));
 			}
 			{
 				int cnt = 0;
@@ -855,7 +870,8 @@ namespace BSM
 		std::vector<std::string> General(const Battle& a_b, const NarrativeOptions& a_opt)
 		{
 			std::vector<std::string> out;
-			const auto               party = OnSide(a_b, Side::kPlayer), enemies = OnSide(a_b, Side::kEnemy), others = OnSide(a_b, Side::kOther);
+			const auto               party = OnSide(a_b, Side::kPlayer), enemies = OnSide(a_b, Side::kEnemy), others = OnSide(a_b, Side::kOther),
+			                         allies = OnSide(a_b, Side::kAlly);
 			const std::string        where = a_b.location.empty() ? std::string() : " " + F("battle.at", { { "place", a_b.location } });
 			if (a_b.Ongoing()) out.push_back(F("battle.underway", { { "at_place", where } }));
 			else if (a_b.clashes > 1) {
@@ -864,6 +880,7 @@ namespace BSM
 
 			if (!party.empty() && !enemies.empty()) out.push_back(F("battle.sides", { { "party", Grouped(party) }, { "enemies", Grouped(enemies) } }));
 			else if (!enemies.empty()) out.push_back(F("battle.enemies_only", { { "enemies", Grouped(enemies) } }));
+			if (!allies.empty() && !enemies.empty()) out.push_back(F("battle.allies", { { "allies", Grouped(allies) } }));
 			if (!others.empty()) out.push_back(F("battle.caught_up", { { "others", Grouped(others) } }));
 
 			if (auto o = Outcome(a_b, Side::kEnemy); !o.empty()) out.push_back(std::move(o));
@@ -909,7 +926,13 @@ namespace BSM
 				if (!p->dead) continue;
 				// killed by their own side: said outright, accident or not
 				const auto* k = a_b.Find(p->killer);
-				const bool  ownSide = k && k->info.id != p->info.id && a_b.EffectiveSide(*k) == Side::kPlayer;
+				const bool  ownSide = k && k->info.id != p->info.id && Friends(a_b.EffectiveSide(*k), Side::kPlayer);
+				out.push_back(F("killed.line", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, p->killer) }, { "own_side", ownSide ? ", " + T("killed.own_side") : std::string() } }));
+			}
+			for (const auto* p : allies) {
+				if (!p->dead) continue;
+				const auto* k = a_b.Find(p->killer);
+				const bool  ownSide = k && k->info.id != p->info.id && Friends(a_b.EffectiveSide(*k), Side::kAlly);
 				out.push_back(F("killed.line", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, p->killer) }, { "own_side", ownSide ? ", " + T("killed.own_side") : std::string() } }));
 			}
 			for (const auto* p : enemies) {

@@ -142,7 +142,8 @@ namespace
 		Check(Has(hero, "Flame Atronach (commanded by Kaira) 1 (Wolf)"), "kill tally credits the summon with its master", hero);
 	}
 
-	// A guard who only fought the bandits counts with the player's side; a townsman who hit the player counts against.
+	// A guard who only fought the bandits is an ally: told apart from the party. A townsman whose blow caught the player while
+	// bandits were about was crossfire, not an enemy.
 	void TestOthers()
 	{
 		Battle b;
@@ -156,10 +157,12 @@ namespace
 		b.Death(kBandit1, kGuard, 2);
 		b.Damage(kHero, kMage, 10, 0.95f, 3);
 		b.endedAt = 10;
-		Check(b.EffectiveSide(*b.Find(kGuard)) == Side::kPlayer, "the guard fought on the player's side", "");
-		Check(b.EffectiveSide(*b.Find(kMage)) == Side::kEnemy, "the farmer fought against the player", "");
+		Check(b.EffectiveSide(*b.Find(kGuard)) == Side::kAlly, "the guard fought beside the player, as an ally", "");
+		Check(b.EffectiveSide(*b.Find(kMage)) == Side::kOther, "the farmer's blow, with bandits about, was crossfire", "");
 		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", {}));
-		Check(Has(hero, "Kaira and Whiterun Guard fought against Bandit and Angry Farmer."), "sides with the others folded in", hero);
+		Check(Has(hero, "Kaira fought against Bandit.") && Has(hero, "Whiterun Guard also fought them, apart from the party.")
+				&& Has(hero, "Who killed the enemies: Whiterun Guard 1 (Bandit)."),
+			"the ally told apart, with their kill", hero);
 		Check(Has(hero, "Kaira killed none of the 1 who died on the other side."), "no kills is said outright", hero);
 
 		// a follower who turns up in a later report as an enemy stays a follower; an other who turns hostile becomes an enemy
@@ -264,7 +267,7 @@ namespace
 		c.Damage(kHero, kMinotaur, 8, 0.04f, 1);
 		c.Damage(kMinotaur, kGuard, 50, 0.8f, 2);
 		c.endedAt = 10;
-		Check(c.Involved(*c.Find(kGuard)) && c.EffectiveSide(*c.Find(kGuard)) == Side::kPlayer, "a guard who fights the party's enemy is on the party's side", "");
+		Check(c.Involved(*c.Find(kGuard)) && c.EffectiveSide(*c.Find(kGuard)) == Side::kAlly, "a guard who fights the party's enemy is an ally", "");
 		Check(c.Find(kHero)->WasCritical() && c.Find(kHero)->broughtLowBy == kMinotaur, "hurt further while already low is near death", "");
 	}
 
@@ -488,10 +491,11 @@ namespace
 		b.endedAt = 10;
 
 		Check(b.EffectiveSide(*b.Find(kMage)) == Side::kOther, "a bystander struck only by the player's side is not an enemy", "");
-		Check(b.EffectiveSide(*b.Find(kGuard)) == Side::kPlayer, "a guard who fought the bandits is on the player's side", "");
+		Check(b.EffectiveSide(*b.Find(kGuard)) == Side::kAlly, "a guard who fought the bandits is an ally", "");
 		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", {}));
-		Check(Has(hero, "Kaira, Lydia and Whiterun Guard fought against Bandit and Bandit Chief.") && Has(hero, "Also caught up in it: Hunter and Heimskr."),
-			"the bystanders are caught up in it, not enemies", hero);
+		Check(Has(hero, "Kaira and Lydia fought against Bandit and Bandit Chief.") && Has(hero, "Whiterun Guard also fought them, apart from the party.")
+				&& Has(hero, "Also caught up in it: Hunter and Heimskr."),
+			"the bystanders are caught up in it, not enemies; the guard an ally", hero);
 
 		NarrativeOptions quiet;
 		quiet.ignoreFriendlyFire = true;
@@ -507,8 +511,9 @@ namespace
 		Check(Has(bandit, "Bandit suffered: burned by fire by Kaira (Fireball).") && Has(bandit, "Bandit was killed by Kaira."), "what the player did to an enemy is still told", bandit);
 
 		const auto guardTold = SummaryText(BuildSummary(b, kGuard, "Whiterun Guard", {}));
-		Check(Has(guardTold, "Whiterun Guard was caught in their own side's attacks, by accident (friendly fire, not an attack on them): took part of their damage from Kaira; burned by fire by Kaira (Fireball)."),
-			"a guard who fought beside the party: friendly fire, as before", guardTold);
+		Check(Has(guardTold, "Whiterun Guard was caught in the crossfire, by accident (not an attack on them): took part of their damage from Kaira; burned by fire by Kaira (Fireball).")
+				&& !Has(guardTold, "dealt all the damage"),
+			"a guard who fought beside the party: crossfire, and their part of all the damage on the enemy", guardTold);
 		const auto guardHidden = SummaryText(BuildSummary(b, kGuard, "Whiterun Guard", quiet));
 		Check(!Has(guardHidden, "Fireball") && !Has(guardHidden, "from Kaira"), "and left out as before", guardHidden);
 
@@ -528,7 +533,7 @@ namespace
 		c.Join(Info(kMage, "Hunter", Side::kOther, 100));
 		c.Damage(kHero, kBandit1, 10, 0.95f, 1);
 		c.Damage(kMage, kBandit1, 30, 0.7f, 2);
-		Check(c.EffectiveSide(*c.Find(kMage)) == Side::kPlayer, "struck by the player's enemies: with the player's side", "");
+		Check(c.EffectiveSide(*c.Find(kMage)) == Side::kAlly, "struck by the player's enemies: an ally", "");
 
 		// with no enemies about, whoever the party went for is no bystander: a deer hunt is still a fight with the deer...
 		Battle d;
@@ -1174,6 +1179,78 @@ namespace
 		Check(Has(o, "The one enemy was not killed; the fight broke off.") && !Has(o, "None of the 1"), "one enemy, not killed", o);
 	}
 
+	// Whiterun, 1.6.0-beta-1: an ally's spell on a follower was told as their own side's attacks, and chickens only staggered
+	// by a giant's stomp were listed as caught up in it although bystanders are left out
+	void TestAllyNoise()
+	{
+		constexpr ActorId kChicken = 0xFF000E10, kGiant = 0xFF000E11;
+		Battle b;
+		b.startedAt = 0;
+		b.omitBystanders = true;
+		b.Join(Info(kHero, "Dave", Side::kPlayer, 300));
+		b.Join(Info(kLydia, "Zhasim", Side::kPlayer, 300));
+		b.Join(Info(kGiant, "Grunt", Side::kEnemy, 900));
+		b.Join(Info(kGuard, "Durak", Side::kOther, 250));
+		b.Join(Info(kChicken, "Chicken", Side::kOther, 5));
+		b.Damage(kLydia, kGiant, 80, 0.7f, 1);
+		b.Damage(kGiant, kGuard, 200, 0.7f, 1.5);
+		b.Effect(kHero, kGuard, Text::Get("fx.armor_weakened"), "Frostbite", true, 2);
+		b.Effect(kChicken, kGiant, Text::Get("fx.staggered"), "", true, 2.5);
+		b.Damage(kGiant, kHero, 700, 0.0f, 3);
+		b.Death(kGiant, kHero, 3);
+		b.endedAt = 5;
+		const auto dave = SummaryText(BuildSummary(b, kHero, "Dave", {}));
+		Check(Has(dave, "Dave was caught in the crossfire, by accident") && !Has(dave, "own side's attacks"), "an ally's spell on one of the party: crossfire", dave);
+		Check(!Has(dave, "Chicken") && !Has(dave, "caught up"), "a bystander only staggered is left out", dave);
+
+		// Whiterun again: the town turned on the party. Fjori, who only fought the trolls and killed one, is an ally; Anoriath,
+		// who struck the party, an enemy. Durak's aura on everyone is told to no one. A body cleaned up keeps its name.
+		constexpr ActorId kTroll = 0xFF000E20, kFjori = 0xFF000E21, kAnoriath = 0xFF000E22, kDurak = 0xFF000E23;
+		Battle w;
+		w.startedAt = 0;
+		w.omitBystanders = true;
+		w.Join(Info(kHero, "Dave", Side::kPlayer, 300));
+		w.Join(Info(kLydia, "Zhasim", Side::kPlayer, 300));
+		auto troll = Info(kTroll, "Frost Troll", Side::kEnemy, 300);
+		troll.wouldFight = true;
+		w.Join(troll);
+		w.Join(Info(kFjori, "Fjori Farroson", Side::kOther, 150));
+		w.Join(Info(kAnoriath, "Anoriath", Side::kOther, 150));
+		w.Join(Info(kDurak, "Durak", Side::kOther, 250));
+		for (ActorId c = 0; c < 6; ++c) w.Join(Info(0xFF000E30 + c, "Chicken", Side::kOther, 5));
+		w.Damage(kLydia, kTroll, 60, 0.8f, 1);
+		w.Join(Info(kFjori, "Fjori Farroson", Side::kEnemy, 150));      // the town turns on the party
+		w.Join(Info(kAnoriath, "Anoriath", Side::kEnemy, 150));
+		for (const ActorId t : { kHero, kLydia, kFjori, kAnoriath, kTroll, ActorId(0xFF000E30), ActorId(0xFF000E31), ActorId(0xFF000E32), ActorId(0xFF000E33) })
+			w.Effect(t, kDurak, Text::Get("fx.armor_weakened"), "", true, 1.5);
+		w.Damage(kLydia, kAnoriath, 20, 0.85f, 2);
+		w.Damage(kAnoriath, kLydia, 150, 0.0f, 2.5);
+		w.Death(kAnoriath, kLydia, 2.5);
+		w.Damage(kTroll, kFjori, 300, 0.0f, 3);
+		w.Death(kTroll, kFjori, 3);
+		auto gone = Info(kAnoriath, "someone", Side::kEnemy, 150);  // the body, cleaned up, reports nameless
+		gone.unnamed = true;
+		w.Join(gone);
+		w.endedAt = 5;
+		Check(w.EffectiveSide(*w.Find(kFjori)) == Side::kAlly && w.EffectiveSide(*w.Find(kAnoriath)) == Side::kEnemy,
+			"turned hostile: an ally if they only fought the enemy, an enemy if they fought the party", "");
+		const auto told = SummaryText(BuildSummary(w, kHero, "Dave", {}));
+		Check(Has(told, "Dave and Zhasim fought against Frost Troll and Anoriath.") && Has(told, "Fjori Farroson also fought them, apart from the party.")
+				&& Has(told, "Fjori Farroson 1 (Frost Troll)") && !Has(told, "by accident"),
+			"the townsman who fought the troll is an ally, and their kill no accident", told);
+		Check(!Has(told, "Durak") && !Has(told, "armor weakened") && !Has(told, "Chicken"), "an aura on everyone is told to no one", told);
+		Check(!Has(told, "someone") && Has(told, "Zhasim 1 (Anoriath)"), "a body cleaned up keeps its name", told);
+
+		// townsfolk the game put in combat (watching, about to flee), reached by nothing but the aura: not in it at all
+		constexpr ActorId kOlava = 0xFF000E40;
+		w.Join(Info(kOlava, "Olava the Feeble", Side::kOther, 60));
+		w.CameToFight(kOlava);
+		w.CameToFight(kDurak);
+		w.Effect(kOlava, kDurak, Text::Get("fx.armor_weakened"), "", true, 1.6);
+		const auto quiet = SummaryText(BuildSummary(w, kHero, "Dave", {}));
+		Check(!Has(quiet, "Olava") && !Has(quiet, "Durak") && !Has(quiet, "caught up"), "in combat, but nothing done to them or by them: not told", quiet);
+	}
+
 	void TestDuration()
 	{
 		const auto is = [](double a_s, const char* a_want) { Check(DurationText(a_s) == a_want, a_want, DurationText(a_s)); };
@@ -1271,6 +1348,7 @@ int main(int argc, char** argv)
 	TestClashes();
 	TestAlly();
 	TestEnemyOwnSide();
+	TestAllyNoise();
 	TestDuration();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);

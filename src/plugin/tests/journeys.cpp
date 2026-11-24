@@ -86,6 +86,18 @@ namespace
 		std::vector<float>       health;  // the party's, as it goes
 		std::vector<bool>        dead;
 		double                   t{ 0 };
+		// fought beside the party, not of it (Neloth, a town's guards): joined as the game sees them, neither side
+		std::vector<std::pair<ActorId, std::string>> allies;
+
+		void Ally(ActorId a_id, const char* a_name, float a_hp, ActorId a_master = 0, bool a_aggressive = false, bool a_lawful = false)
+		{
+			ActorInfo info{ a_id, a_name, Side::kOther, false, a_master, a_hp };
+			info.summon = a_master != 0;
+			info.wouldFight = a_aggressive;  // an atronach attacks anyone: read on its own, it would fight the player
+			info.lawful = a_lawful;
+			b.Join(info);
+			if (!info.summon) allies.emplace_back(a_id, a_name);
+		}
 
 		void Join(const Member& a_m)
 		{
@@ -213,7 +225,11 @@ namespace
 				for (std::size_t by = 0; by < standing; ++by) a_f.Hurt(static_cast<int>(i), a_f.foes[k + by], share * hurt[i] / hw / standing);
 			}
 			if (a_j.before) a_j.before(a_f, k);
+			if (const auto* v = b.Find(foe); v && v->dead) continue;  // someone else finished it (an ally)
+			// before() may have raised a corpse into the party: every per-member list grows with it (credit read past its end
+			// made the kills differ from run to run)
 			dealt.resize(a_f.party.size(), 0.0f);
+			credit.resize(a_f.party.size(), 0.0f);
 			dw = 0;
 			for (std::size_t i = 0; i < a_f.party.size(); ++i)
 				if (!a_f.dead[i]) dw += dealt[i];
@@ -383,6 +399,54 @@ namespace
 				if (k == 2) f.Drink(0, "Potion of Healing", 50);
 			} });
 		j.back().stopAfter = 2;
+
+		// Neloth at Nchardak (a player's log, 1.5.0): not a follower, fighting the same automatons with his own Ash Guardian.
+		// His spells catch a follower (the player, alone); his guardian takes blows and finishes a sphere. Told as enemies
+		// before: Neloth "fled", and his guardian's kill was an enemy's "by accident" of their own side.
+		j.push_back({ "Allies: Neloth",
+			"Five Dwemer automatons. Neloth (not a follower) fights them too, with his Ash Guardian: he strikes every one, his "
+			"spells catch a follower, the guardian draws blows and finishes the second Dwarven Sphere.",
+			[](std::size_t) { return Many("Dwarven Spider", 150, 3, { { "Dwarven Sphere", 300 }, { "Dwarven Sphere", 300 } }); }, 1, 0.3f, Dealt, Taken,
+			[](Fight& f, std::size_t k) {
+				const ActorId neloth = 0xFF000E00, guardian = 0xFF000E01, foe = f.foes[k];
+				f.b.Damage(foe, neloth, 60, -1.0f, f.t);
+				f.t += 0.4;
+				f.b.Damage(guardian, foe, 90, -1.0f, f.t);
+				f.t += 0.4;
+				if (k == 1) {
+					const int hit = f.party.size() > 1 ? 1 : 0;
+					f.Hurt(hit, neloth, 70);
+				}
+				if (k == 1) {
+					f.b.Damage(foe, guardian, 240, 0.0f, f.t);
+					f.b.Death(foe, guardian, f.t);
+					f.t += 1.0;
+				}
+			},
+			true,
+			[](Fight& f) {
+				f.Ally(0xFF000E00, "Neloth", 400);
+				f.Ally(0xFF000E01, "Ash Guardian", 600, 0xFF000E00, true);
+			} });
+
+		// a dragon at Whiterun: six guards fight it on their own account and one of them dies; the party lands the killing blow
+		j.push_back({ "Allies: guards and a dragon",
+			"A Blood Dragon at Whiterun. Six Whiterun guards fight it too: their arrows do a good part of the damage, and the dragon "
+			"kills one of them. The party kills it.",
+			[](std::size_t) { return std::vector<Foe>{ { "Blood Dragon", 3000 } }; }, 1, 0.3f, Dealt, Taken,
+			[](Fight& f, std::size_t k) {
+				for (ActorId g = 0; g < 6; ++g) {
+					f.b.Damage(f.foes[k], 0xFF000F00 + g, 120, -1.0f, f.t);
+					f.t += 0.3;
+				}
+				f.b.Damage(0xFF000F02, f.foes[k], 220, 0.0f, f.t);
+				f.b.Death(0xFF000F02, f.foes[k], f.t);
+				f.t += 0.5;
+			},
+			true,
+			[](Fight& f) {
+				for (ActorId g = 0; g < 6; ++g) f.Ally(0xFF000F00 + g, "Whiterun Guard", 220, 0, false, true);
+			} });
 		return j;
 	}
 
@@ -421,16 +485,25 @@ int RunJourneys(const char* a_path)
 				const auto s = BuildSummary(f.b, 0xFF000C00, "a witness", {});
 				Print(out, "told to everyone", s.general);
 				Print(out, "a witness, about the fighters", s.others);
-				continue;
+			} else {
+				bool first = true;
+				for (std::size_t i = 1; i < f.party.size(); ++i) {
+					if (f.party[i].role == Role::kSummon) continue;
+					const auto s = BuildSummary(f.b, f.party[i].id, f.party[i].name, {});
+					if (first) Print(out, "told to everyone", s.general);
+					Print(out, (std::string(f.party[i].name) + ", about themself").c_str(), s.personal);
+					if (first) Print(out, (std::string(f.party[i].name) + ", about the others").c_str(), s.others);
+					first = false;
+				}
 			}
-			bool first = true;
-			for (std::size_t i = 1; i < f.party.size(); ++i) {
-				if (f.party[i].role == Role::kSummon) continue;
-				const auto s = BuildSummary(f.b, f.party[i].id, f.party[i].name, {});
-				if (first) Print(out, "told to everyone", s.general);
-				Print(out, (std::string(f.party[i].name) + ", about themself").c_str(), s.personal);
-				if (first) Print(out, (std::string(f.party[i].name) + ", about the others").c_str(), s.others);
-				first = false;
+			// an ally, from their own side of it: the first of each name
+			std::vector<std::string> shown;
+			for (const auto& [id, name] : f.allies) {
+				if (std::ranges::find(shown, name) != shown.end()) continue;
+				shown.push_back(name);
+				const auto s = BuildSummary(f.b, id, name, {});
+				Print(out, (name + " (an ally), about themself").c_str(), s.personal);
+				Print(out, (name + " (an ally), about the party").c_str(), s.others);
 			}
 		}
 	}

@@ -188,7 +188,10 @@ namespace BSM::Tracker
 			const char* n = a_actor->GetDisplayFullName();
 			i.name = n ? n : "";
 			while (!i.name.empty() && std::isspace(static_cast<unsigned char>(i.name.back()))) i.name.pop_back();  // name mods leave a trailing space
-			if (i.name.empty()) i.name = Text::Get("name.someone");
+			if (i.name.empty()) {
+				i.name = Text::Get("name.someone");
+				i.unnamed = true;
+			}
 			i.isPlayer = a_actor == pc;
 			i.maxHealth = MaxHealthOf(a_actor);
 			i.healthPct = HealthPct(a_actor);

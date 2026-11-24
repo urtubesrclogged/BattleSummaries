@@ -62,12 +62,13 @@ namespace BSM
 	Participant& Battle::Join(const ActorInfo& a_info)
 	{
 		if (auto* p = Find(a_info.id)) {
-			if (!a_info.name.empty()) p->info.name = a_info.name;
+			if (!a_info.name.empty() && (!a_info.unnamed || p->info.name.empty())) p->info.name = a_info.name;
 			if (a_info.maxHealth > 0.0f) p->info.maxHealth = a_info.maxHealth;
 			if (a_info.master != 0) p->info.master = a_info.master;
 			if (a_info.lawful) p->info.lawful = true;
 			if (a_info.wouldFight) p->info.wouldFight = true;
 			// a follower stays a follower through a stray friendly hit; anyone else who turns hostile is an enemy from then on
+			if (p->info.side == Side::kOther && a_info.side == Side::kEnemy) p->turnedHostile = true;
 			if (p->info.side == Side::kOther || a_info.side == Side::kPlayer) p->info.side = a_info.side;
 			return *p;
 		}
@@ -214,6 +215,7 @@ namespace BSM
 	{
 		if (!ignoreHarmless || !a_e.hostile) return true;
 		if (a_e.damage) return TookHealth(a_target, a_e);
+		if (Aura(a_e)) return false;
 		if (a_e.spell == 0) return true;
 		// the spell's other effects go with its damage: told when one of its damage effects took health
 		bool carriesDamage = false;
@@ -223,6 +225,20 @@ namespace BSM
 			carriesDamage = true;
 		}
 		return !carriesDamage;
+	}
+
+	bool Battle::Aura(const EffectNote& a_e) const
+	{
+		const auto* caster = Find(a_e.by);
+		if (!caster || a_e.damage) return false;
+		int targets = 0, own = 0, others = 0;
+		for (const auto& p : participants) {
+			if (p.info.id == caster->info.id) continue;
+			if (!std::ranges::any_of(p.effects, [&](const EffectNote& e) { return e.hostile && e.by == a_e.by && e.label == a_e.label; })) continue;
+			++targets;
+			++(p.info.side == caster->info.side ? own : others);
+		}
+		return targets >= 6 && own >= 2 && others >= 2;
 	}
 
 	void Battle::Injury(ActorId a_id, const std::string& a_name, bool a_carried, double a_now)
@@ -266,9 +282,17 @@ namespace BSM
 		if (auto* p = Find(a_id)) p->cameToFight = true;
 	}
 
-	bool Battle::Fought(const Participant& a_p) const
+	bool Battle::Fought(const Participant& a_p) const { return a_p.armed || a_p.cameToFight || Acted(a_p); }
+
+	bool Battle::Touched(const Participant& a_p) const
 	{
-		if (a_p.armed || a_p.cameToFight || a_p.damageDealt > 0.0f || !a_p.kills.empty()) return true;
+		return a_p.damageTaken > 0.0f || a_p.dead ||
+		       std::ranges::any_of(a_p.effects, [&](const EffectNote& e) { return e.hostile && e.by != a_p.info.id && Landed(a_p, e); });
+	}
+
+	bool Battle::Acted(const Participant& a_p) const
+	{
+		if (a_p.damageDealt > 0.0f || !a_p.kills.empty()) return true;
 		for (const auto& q : participants) {  // a summoner fights through what they summoned
 			if (q.info.summon && q.info.master == a_p.info.id && (q.damageDealt > 0.0f || !q.kills.empty())) return true;
 		}
@@ -283,7 +307,11 @@ namespace BSM
 	bool Battle::NonCombatant(const Participant& a_p) const
 	{
 		if (a_p.info.side == Side::kPlayer || a_p.info.wouldFight) return false;
-		if (a_p.damageTaken <= 0.0f && !a_p.dead) return false;  // nobody touched them
+		// nobody touched them: no blow, no death, and no harmful effect that took hold. A stagger or a weakening (a giant's
+		// stomp, a shout) involves its target without a blow: seen in Whiterun, chickens, pigeons and townsfolk listed as
+		// "caught up in it" under the setting that leaves bystanders out. One marked as in it only by an aura (Aura) is
+		// touched by nothing that counts.
+		if (!Touched(a_p) && !a_p.engaged && !a_p.involved) return false;
 		return !Fought(a_p);
 	}
 
@@ -342,10 +370,37 @@ namespace BSM
 		}
 	}
 
-	Side Battle::EffectiveSide(const Participant& a_p) const
+	Side Battle::EffectiveSide(const Participant& a_p) const { return EffectiveSide(a_p, 0); }
+
+	Side Battle::EffectiveSide(const Participant& a_p, int a_depth) const
 	{
 		if (Innocent(a_p)) return Side::kOther;
+		// Turned hostile to the player during the battle but fought only the player's enemies: an ally. Seen in Whiterun: the
+		// town turned on the party after a follower struck a townsman, and Fjori Farroson, who only ever fought the trolls,
+		// was told as an enemy who killed one of their own side by accident.
+		if (a_p.info.side == Side::kEnemy && a_p.turnedHostile && !a_p.info.wouldFight) {
+			float toParty = 0.0f, toFoes = 0.0f;
+			bool  harmedParty = false;
+			for (const auto& q : participants) {
+				if (q.info.id == a_p.info.id) continue;
+				if (const auto it = q.damageFrom.find(a_p.info.id); it != q.damageFrom.end()) {
+					if (q.info.side == Side::kPlayer) toParty += it->second;
+					else if (q.info.side == Side::kEnemy && (!q.turnedHostile || q.info.wouldFight)) toFoes += it->second;
+				}
+				if (q.info.side == Side::kPlayer) {
+					for (const auto& e : q.effects) {
+						if (e.hostile && e.by == a_p.info.id && Landed(q, e)) harmedParty = true;
+					}
+				}
+			}
+			if (toFoes > 0.0f && toParty <= 0.0f && !harmedParty) return Side::kAlly;
+		}
 		if (a_p.info.side != Side::kOther) return a_p.info.side;
+		// A summon stands where its master stands: Neloth's Ash Guardian fought for Neloth. Judged on its own, an aggressive
+		// atronach of someone who is not the player's read as an enemy, and its kills as an enemy's own side's.
+		if (a_p.info.summon && a_p.info.master != 0 && a_p.info.master != a_p.info.id && a_depth < 3) {
+			if (const auto* m = Find(a_p.info.master)) return EffectiveSide(*m, a_depth + 1);
+		}
 		if (a_p.info.wouldFight) return Side::kEnemy;  // would have fought the player: killed unaware, still an enemy
 		float toPlayerSide = 0.0f, toEnemies = 0.0f;
 		for (const auto& q : participants) {
@@ -354,16 +409,19 @@ namespace BSM
 			if (q.info.side == Side::kPlayer) toPlayerSide += it->second;
 			else if (q.info.side == Side::kEnemy) toEnemies += it->second;
 		}
-		if (toPlayerSide > toEnemies) return Side::kEnemy;
-		if (toEnemies > 0.0f) return Side::kPlayer;
-		// Did no damage to either: one the player's enemies went for is with the player's side. One only the player's side
-		// went for is the one they fought, unless the party was fighting real enemies here: then it was crossfire (a
-		// fireball's edge, a stray arrow), and someone who never turned hostile to the player (Join would have made them
-		// an enemy) and never struck the party stays a bystander.
+		// Struck the player's enemies and never turned hostile to the player (Join would have made them an enemy): an ally,
+		// however much of their fire caught the party. Seen at Nchardak: Neloth's spells hit the followers more than the
+		// spiders, and he was told as an enemy who fled.
+		if (toEnemies > 0.0f) return Side::kAlly;
+		// Struck only the party: with real enemies about, that was crossfire (a fireball's edge, a stray arrow); with none,
+		// they were the one the party fought (a brawl).
+		if (toPlayerSide > 0.0f) return HasEnemies() ? Side::kOther : Side::kEnemy;
+		// Did no damage to either: one the player's enemies went for is with them. One only the player's side went for is
+		// the one they fought, unless the party was fighting real enemies here: then it was crossfire, and they stay a bystander.
 		bool byPlayerSide = false;
 		for (const auto& [attacker, dmg] : a_p.damageFrom) {
 			const auto* q = Find(attacker);
-			if (q && q->info.side == Side::kEnemy) return Side::kPlayer;
+			if (q && q->info.side == Side::kEnemy) return Side::kAlly;
 			if (q && q->info.side == Side::kPlayer) byPlayerSide = true;
 		}
 		return byPlayerSide && !HasEnemies() ? Side::kEnemy : Side::kOther;
@@ -372,6 +430,9 @@ namespace BSM
 	bool Battle::Involved(const Participant& a_p) const
 	{
 		if (omitBystanders && NonCombatant(a_p)) return false;  // the player's doing to bystanders is no part of the story
+		// Neither side, and nothing happened to them or by them: no part of it, whatever combat state the game gave them.
+		// Seen in Whiterun: townsfolk only reached by Durak's aura, in combat to watch or flee, listed as "caught up in it".
+		if (a_p.info.side == Side::kOther && !Touched(a_p) && !Acted(a_p)) return false;
 		return a_p.info.side == Side::kPlayer || a_p.engaged || a_p.involved;
 	}
 
