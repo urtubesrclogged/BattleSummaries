@@ -2,7 +2,7 @@
 # BattleSummaries.ini; a change takes effect when the next battle begins or a save is loaded.
 plugin:
   name: BattleSummaries
-  version: "1.5.0"
+  version: "1.6.0"
   description: "Gives NPCs a factual summary of each battle near the player, in place of the raw combat events."
 
 schema:

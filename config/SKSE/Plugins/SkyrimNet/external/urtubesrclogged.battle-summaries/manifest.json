@@ -22,7 +22,7 @@
   "languages": [
     "en"
   ],
-  "version": "1.5.0",
-  "changelog": "Teamwork: who did the work and the part each played, and a Followers Fight as a Team setting. A wind-down setting keeps a fight that starts again as one battle, told in clashes. Death-alternative mods: struck down is getting back up, and a battle you are moved away from ends where it was fought.",
+  "version": "1.6.0",
+  "changelog": "Allies: someone not in your party who fights your enemies (Neloth, Whiterun's guards) is told apart from the party, with their own kills. Fixes for quest NPCs fighting beside you, crossfire from allies, auras, witnesses who did nothing, and names of cleaned-up bodies.",
   "min_skyrimnet_version": "0.25.0"
 }

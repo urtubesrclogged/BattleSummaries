@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.6.0
+
+**Allies**
+- Someone who isn't in your party but fights your enemies (Neloth at Nchardak, Whiterun's guards against a dragon) is now told as an ally: "Neloth also fought them, apart from the party." Their kills are their own, their summons fight on their side, and they stay out of your party's shares and roles.
+- A bystander who turns hostile but only ever fights your enemies counts as an ally, not an enemy or bystander.
+
+**Bug Fixes**
+- Quest NPCs (such as Neloth) who fight alongside you without being a follower are now handled correctly.
+- An ally's spell that catches one of your party is told as crossfire, not as "their own side's attacks".
+- An aura that hits everyone nearby (like Durak's armor-weakening pulse) is no longer repeatedly told as something done to anyone.
+- Witnesses to the battle who did nothing in the fight no longer show up as "caught up in it".
+- Someone whose body is cleaned up mid-battle keeps their name instead of becoming "someone".
+
 ## 1.5.0
 
 **Teamwork**
