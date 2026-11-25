@@ -42,6 +42,8 @@ namespace BSM::Text
 			{ "Lists", "list.times", "{name} x{count}", "several of the same name" },
 			{ "Lists", "list.others", "{count} others", "the rest of a list too long to tell" },
 			{ "Lists", "name.someone", "someone", "an actor with no name" },
+			{ "Lists", "name.unseen", "an unseen attacker", "one of the player's side the reader never saw (a sneak attack): their name is not known" },
+			{ "Lists", "name.unseen_count", "{count} unseen attackers", "several of them, in a list" },
 			{ "Lists", "name.nobody", "no one in particular", "damage or a kill with nobody behind it" },
 			{ "Lists", "name.commanded", "{name} (commanded by {master})", "a summoned or raised creature" },
 			{ "Lists", "name.summons_of", "{master}'s {summons}", "a summoned or raised creature, by whoever commands it: it drew the enemy's blows" },
@@ -93,6 +95,7 @@ namespace BSM::Text
 			{ "Outcome", "share.percent", "(about {percent}%)", "only with bShowNumbers: a fighter's part of the party's damage" },
 			{ "Outcome", "summons.dispatched", "Summoned creatures dispatched: {tally}.", "the enemy's summoned or raised creatures, by who put an end to them" },
 			{ "Outcome", "tally.through", "{count} through {summons}", "kills a summoned creature made, credited to whoever summoned it" },
+			{ "Outcome", "tally.unseen", "{count} unseen", "kills of victims who never saw their killer; only to those who know who the killer was" },
 
 			// ---------------------------------------------------------------- deaths
 			{ "Deaths", "killed.by", "was killed by {killer}", "" },
@@ -192,6 +195,7 @@ namespace BSM::Text
 			// ---------------------------------------------------------------- kills and moments
 			{ "Kills", "kills.mine", "{name} killed {count} of the {total} who died on the other side{victims}.", "{victims} is empty or a colon and the names" },
 			{ "Kills", "kills.through", "{count} of them through {summons}.", "the part of those kills their summoned creatures made" },
+			{ "Kills", "kills.unseen", "{count} of them without being seen.", "kills of victims who never saw their killer (a sneak attack)" },
 			{ "Kills", "kills.dispatched", "{name} also dispatched {victims}.", "summoned creatures of the other side" },
 			{ "Kills", "kills.none", "{name} killed none of the {total} who died on the other side.", "" },
 

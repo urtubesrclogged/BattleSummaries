@@ -1251,6 +1251,43 @@ namespace
 		Check(!Has(quiet, "Olava") && !Has(quiet, "Durak") && !Has(quiet, "caught up"), "in combat, but nothing done to them or by them: not told", quiet);
 	}
 
+	// abac: picked off from the shadows, the bandits never saw the player, and the one left searching learned their name from
+	// the summary. Those who never saw one of the party are told "an unseen attacker"; the party knows who made the kills.
+	void TestUnseen()
+	{
+		constexpr ActorId kSearcher = 0xFF000E50;
+		Battle b;
+		b.startedAt = 0;
+		b.trackSight = true;
+		b.Join(Info(kHero, "Kaira", Side::kPlayer, 300));
+		b.Join(Info(kLydia, "Lydia", Side::kPlayer, 300));
+		b.Join(Info(kBandit1, "Bandit", Side::kEnemy, 100));
+		b.Join(Info(kBandit2, "Bandit", Side::kEnemy, 100));
+		b.Join(Info(kSearcher, "Bandit Outlaw", Side::kEnemy, 100));
+		b.Saw(kSearcher, kLydia);  // saw Lydia, never Kaira
+		b.Damage(kBandit1, kHero, 100, 0.0f, 1);
+		b.Death(kBandit1, kHero, 1);
+		b.Damage(kBandit2, kHero, 100, 0.0f, 2);
+		b.Death(kBandit2, kHero, 2);
+		b.Damage(kSearcher, kLydia, 20, 0.8f, 3);
+		b.CameToFight(kSearcher);
+		b.endedAt = 10;
+
+		const auto searcher = SummaryText(BuildSummary(b, kSearcher, "Bandit Outlaw", {}));
+		Check(!Has(searcher, "Kaira") && Has(searcher, "An unseen attacker and Lydia fought against") && Has(searcher, "Who killed the enemies: an unseen attacker 2 (Bandit x2).") && !Has(searcher, "unseen)"),
+			"one who never saw the player: an unseen attacker; Lydia, seen, by name", searcher);
+		const auto witness = SummaryText(BuildSummary(b, 0xFF000E51, "Hulda", {}));
+		Check(!Has(witness, "Kaira") && Has(witness, "an unseen attacker"), "a witness who never saw them either", witness);
+		const auto lydia = SummaryText(BuildSummary(b, kLydia, "Lydia", {}));
+		Check(Has(lydia, "Who killed the enemies: Kaira 2 (Bandit x2, 2 unseen).") && !Has(lydia, "unseen attacker"), "the party knows who, and that it was unseen", lydia);
+		const auto hero = SummaryText(BuildSummary(b, kHero, "Kaira", {}));
+		Check(Has(hero, "Kaira killed 2 of the 2 who died on the other side: Bandit x2.") && Has(hero, "2 of them without being seen."), "the killer's own account", hero);
+		const auto memory = BuildMemory(b, {});
+		Check(!Has(memory, "Kaira") && Has(memory, "Lydia"), "the remembered event, filed where the searcher lives: the player unnamed", memory);
+		b.Saw(kSearcher, kHero);
+		Check(Has(BuildMemory(b, {}), "Kaira and Lydia fought against"), "every enemy left alive saw them: named", BuildMemory(b, {}));
+	}
+
 	void TestDuration()
 	{
 		const auto is = [](double a_s, const char* a_want) { Check(DurationText(a_s) == a_want, a_want, DurationText(a_s)); };
@@ -1349,6 +1386,7 @@ int main(int argc, char** argv)
 	TestAlly();
 	TestEnemyOwnSide();
 	TestAllyNoise();
+	TestUnseen();
 	TestDuration();
 	TestEdges();
 	std::printf("%d checks, %d failed\n", g_checks, g_failed);

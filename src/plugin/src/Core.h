@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -137,6 +138,8 @@ namespace BSM
 
 		bool    dead{ false };
 		ActorId killer{ 0 };
+		// killed by one of the player's side they had never seen (a sneak attack, an arrow from the dark)
+		bool    killedUnseen{ false };
 		std::string killedWith;  // the spell or weapon that did it ("Fireball", "Steel Greatsword"); empty = not known
 		double  diedAt{ -1.0 };
 
@@ -188,10 +191,23 @@ namespace BSM
 		// Fighting that stopped and started again within the wind-down (a dungeon cleared room by room, enemies arriving in
 		// groups): one battle, fought in this many clashes.
 		int         clashes{ 1 };
+		// Who has seen whom of the player's side (Saw). Someone outside the party who never saw them is told "an unseen
+		// attacker" in their place: abac's report, enemies searching for a sneak archer learned the player's name from the
+		// summary. Off (the offline tests unless they turn it on): everyone saw everyone.
+		bool        trackSight{ false };
+		std::map<ActorId, std::set<ActorId>> seenBy;  // one of the player's side -> who has detected them
 
 		std::vector<Participant> participants;  // in the order they joined
 
 		[[nodiscard]] bool Ongoing() const { return endedAt < 0.0; }
+
+		void Saw(ActorId a_viewer, ActorId a_target) { seenBy[a_target].insert(a_viewer); }
+		[[nodiscard]] bool SawThem(ActorId a_viewer, ActorId a_target) const
+		{
+			if (!trackSight || a_viewer == a_target) return true;
+			const auto it = seenBy.find(a_target);
+			return it != seenBy.end() && it->second.contains(a_viewer);
+		}
 
 		[[nodiscard]] Participant*       Find(ActorId a_id);
 		[[nodiscard]] const Participant* Find(ActorId a_id) const;

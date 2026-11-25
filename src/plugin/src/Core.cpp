@@ -362,6 +362,7 @@ namespace BSM
 		v->dead = true;
 		v->isDown = false;
 		v->killer = a_killer;
+		if (const auto* k = Find(a_killer); k && k->info.side == Side::kPlayer && !k->info.summon && !SawThem(a_victim, a_killer)) v->killedUnseen = true;
 		v->diedAt = a_now;
 		v->minHealthPct = 0.0f;
 		if (auto* k = Find(a_killer)) {

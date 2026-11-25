@@ -33,11 +33,29 @@ namespace BSM
 			return out;
 		}
 
+		// The one account being built: those of the player's side its reader never saw, told as "an unseen attacker"
+		// (BuildSummary, BuildMemory set it).
+		thread_local const std::set<ActorId>* g_unseen = nullptr;
+
+		bool Unseen(ActorId a_id) { return g_unseen && g_unseen->contains(a_id); }
+
+		std::string Shown(const Participant& a_p) { return Unseen(a_p.info.id) ? T("name.unseen") : a_p.info.name; }
+
+		struct UnseenScope
+		{
+			const std::set<ActorId>* was;
+			explicit UnseenScope(const std::set<ActorId>* a_set) : was(g_unseen) { g_unseen = a_set; }
+			~UnseenScope() { g_unseen = was; }
+			UnseenScope(const UnseenScope&) = delete;
+			UnseenScope& operator=(const UnseenScope&) = delete;
+		};
+
 		// Several fighters of one name are told apart by the order they joined: "the first Troll", "the second Troll". The
 		// same one keeps its number in every line and every NPC's account, so a reader can follow who did what. Lists keep
 		// the name alone ("Troll x2"); a unique name is never numbered.
 		std::string Numbered(const Battle& a_b, const Participant& a_p)
 		{
+			if (Unseen(a_p.info.id)) return T("name.unseen");
 			int nth = 0, of = 0;
 			for (const auto& q : a_b.participants) {
 				if (q.info.name != a_p.info.name || !a_b.Involved(q)) continue;
@@ -88,7 +106,7 @@ namespace BSM
 		{
 			std::vector<std::pair<std::string, int>> groups;
 			for (const auto* p : a_ps) {
-				const auto n = p->info.name.empty() ? T("name.someone") : p->info.name;
+				const auto n = Unseen(p->info.id) ? T("name.unseen") : p->info.name.empty() ? T("name.someone") : p->info.name;
 				const auto  it = std::ranges::find_if(groups, [&](const auto& g) { return g.first == n; });
 				if (it == groups.end()) groups.emplace_back(n, 1);
 				else ++it->second;
@@ -97,7 +115,8 @@ namespace BSM
 			int                      rest = 0;
 			for (const auto& [n, c] : groups) {
 				// one name over the limit is shorter told than "and 1 other"
-				if (items.size() < a_max || groups.size() == a_max + 1) items.push_back(c > 1 ? F("list.times", { { "name", n }, { "count", N(c) } }) : n);
+				const auto one = c > 1 && n == T("name.unseen") ? F("name.unseen_count", { { "count", N(c) } }) : c > 1 ? F("list.times", { { "name", n }, { "count", N(c) } }) : n;
+				if (items.size() < a_max || groups.size() == a_max + 1) items.push_back(one);
 				else rest += c;
 			}
 			if (rest > 0) items.push_back(F("list.others", { { "count", N(rest) } }));
@@ -258,7 +277,7 @@ namespace BSM
 		{
 			const float r = a_p.info.maxHealth > 0.0f ? a_amount / a_p.info.maxHealth : 0.0f;
 			const auto w = T(r < 0.3f ? "heal.little" : r < 0.7f ? "heal.good" : "heal.most");
-			return F("heal.restoring", { { "amount", w }, { "name", a_p.info.name }, { "points", Points(a_amount, a_opt) } });
+			return F("heal.restoring", { { "amount", w }, { "name", Shown(a_p) }, { "points", Points(a_amount, a_opt) } });
 		}
 
 		// Who pulled a participant back from the brink, and how.
@@ -293,10 +312,10 @@ namespace BSM
 				const bool downedThem = id == a_p.broughtLowBy;
 				const auto assailant = NameOf(a_b, a->info.id);
 				if (a->killer == a_p.info.id) {
-					r.deeds.push_back(Cap(F(downedThem ? "rescue.recovered" : "rescue.recovered_wounded", { { "name", a_p.info.name }, { "assailant", assailant }, { "what", what } })));
+					r.deeds.push_back(Cap(F(downedThem ? "rescue.recovered" : "rescue.recovered_wounded", { { "name", Shown(a_p) }, { "assailant", assailant }, { "what", what } })));
 				} else if (a->killer != 0) {
 					r.deeds.push_back(Cap(F(downedThem ? "rescue.assailant_killed" : "rescue.assailant_wounded",
-						{ { "assailant", assailant }, { "what", what }, { "name", a_p.info.name }, { "killer", CreditName(a_b, a->killer) } })));
+						{ { "assailant", assailant }, { "what", what }, { "name", Shown(a_p) }, { "killer", CreditName(a_b, a->killer) } })));
 					// a foe who happened to kill the assailant (monsters turning on each other) saved nobody
 					const auto* k = a_b.Find(a->killer);
 					if (!k || a_b.EffectiveSide(*k) == Opposing(mine)) continue;
@@ -312,7 +331,7 @@ namespace BSM
 						{ "healer", NameOf(a_b, healer) },
 						{ "with", h.source.empty() ? std::string() : " " + F("heal.with", { { "source", h.source } }) },
 						{ "restoring", HealAmount(a_p, h.whileCritical, a_opt) } })));
-				r.brief.push_back(F("rescue.brief_healed", { { "healer", NameOf(a_b, healer) }, { "name", a_p.info.name } }));
+				r.brief.push_back(F("rescue.brief_healed", { { "healer", NameOf(a_b, healer) }, { "name", Shown(a_p) } }));
 				addSavior(healer);
 			}
 			return r;
@@ -359,6 +378,7 @@ namespace BSM
 				std::vector<const Participant*> victims;
 				std::vector<const Participant*> summons;  // the summons that made some of these kills
 				int                             bySummons{ 0 };
+				int                             unseen{ 0 };  // made by one the victim never saw
 			};
 			std::vector<Entry> tally;
 			for (const auto* v : OnSide(a_b, a_victims)) {
@@ -369,18 +389,20 @@ namespace BSM
 				const bool  bySummon = k && k->info.summon && k->info.master != 0 && a_b.Find(k->info.master);
 				const auto  credited = bySummon ? k->info.master : v->killer;
 				auto        it = std::ranges::find_if(tally, [&](const Entry& t) { return t.killer == credited; });
-				if (it == tally.end()) it = tally.insert(tally.end(), { credited, {}, {}, 0 });
+				if (it == tally.end()) it = tally.insert(tally.end(), { credited, {}, {}, 0, 0 });
 				it->victims.push_back(v);
+				if (v->killedUnseen) ++it->unseen;
 				if (bySummon) ++it->bySummons;
 				if (bySummon && std::ranges::none_of(it->summons, [&](const Participant* q) { return q->info.name == k->info.name; })) it->summons.push_back(k);
 			}
 			std::ranges::stable_sort(tally, [](const Entry& a, const Entry& b) { return a.victims.size() > b.victims.size(); });
 			std::vector<std::string> items;
-			for (const auto& [killer, victims, summons, bySummons] : tally) {
+			for (const auto& [killer, victims, summons, bySummons, unseen] : tally) {
 				// the victims by name only while the list stays short; a summon's share as "through Scrap"
 				std::vector<std::string> notes;
 				if (victims.size() <= 3) notes.push_back(Grouped(victims));
 				if (!summons.empty()) notes.push_back(F("tally.through", { { "count", N(bySummons) }, { "summons", Grouped(summons) } }));
+				if (unseen > 0 && !Unseen(killer)) notes.push_back(F("tally.unseen", { { "count", N(unseen) } }));
 				std::string inner;
 				for (const auto& n : notes) inner += (inner.empty() ? "" : ", ") + n;
 				items.push_back((killer == 0 ? T("tally.unknown") : CreditName(a_b, killer)) + " " + N(victims.size()) + (inner.empty() ? std::string() : " (" + inner + ")"));
@@ -418,7 +440,7 @@ namespace BSM
 			if (a_e.by != 0 && a_e.by != a_p.info.id) {
 				// by name alone: a list of what was done to them, where three wolves doing the same are told once
 				const auto* by = a_b.Find(a_e.by);
-				s += " " + F("effect.by", { { "name", by && !by->info.name.empty() ? by->info.name : NameOf(a_b, a_e.by) } });
+				s += " " + F("effect.by", { { "name", by && !by->info.name.empty() ? Shown(*by) : NameOf(a_b, a_e.by) } });
 				if (!a_e.source.empty()) s += " (" + a_e.source + ")";
 			} else if (!a_e.source.empty()) {
 				s += " (" + (a_e.by == 0 ? a_e.source : F("effect.own", { { "source", a_e.source } })) + ")";  // by nobody: a trap, a hazard
@@ -661,6 +683,8 @@ namespace BSM
 			if (mine > 0) {
 				out.push_back(F("kills.mine", { { "name", n }, { "count", N(mine) }, { "total", N(all) }, { "victims", mine <= 3 ? ": " + Grouped(victims) : std::string() } }));
 				if (bySummons > 0) out.push_back(F("kills.through", { { "count", N(bySummons) }, { "summons", Grouped(summons) } }));
+				const auto unseen = std::ranges::count_if(victims, [&](const Participant* v) { return v->killer == a_p.info.id && v->killedUnseen; });
+				if (unseen > 0 && !Unseen(a_p.info.id)) out.push_back(F("kills.unseen", { { "count", N(static_cast<int>(unseen)) } }));
 			}
 			else if (all > 0) out.push_back(F("kills.none", { { "name", n }, { "total", N(all) } }));
 
@@ -953,6 +977,17 @@ namespace BSM
 	{
 		Summary r;
 		if (a_b.participants.empty()) return r;
+		// one outside the party knows of the party only those they saw
+		std::set<ActorId> unseen;
+		if (a_b.trackSight) {
+			const auto* v = a_b.Find(a_viewer);
+			if (!v || !a_b.Involved(*v) || a_b.EffectiveSide(*v) != Side::kPlayer) {
+				for (const auto& p : a_b.participants) {
+					if (p.info.side == Side::kPlayer && !p.info.summon && !a_b.SawThem(a_viewer, p.info.id)) unseen.insert(p.info.id);
+				}
+			}
+		}
+		const UnseenScope scope{ &unseen };
 		r.show = true;
 		r.ongoing = a_b.Ongoing();
 		r.name = a_viewerName;
@@ -985,6 +1020,18 @@ namespace BSM
 
 	std::string BuildMemory(const Battle& a_b, const NarrativeOptions& a_opt)
 	{
+		// Filed for everyone nearby, the enemies who lived among them: one of the party is named only if every enemy left
+		// alive saw them.
+		std::set<ActorId> unseen;
+		if (a_b.trackSight) {
+			for (const auto& p : a_b.participants) {
+				if (p.info.side != Side::kPlayer || p.info.summon) continue;
+				for (const auto& q : a_b.participants) {
+					if (!q.dead && a_b.Involved(q) && a_b.EffectiveSide(q) == Side::kEnemy && !a_b.SawThem(q.info.id, p.info.id)) unseen.insert(p.info.id);
+				}
+			}
+		}
+		const UnseenScope scope{ &unseen };
 		std::string s;
 		const auto  add = [&](const std::string& a_line) {
 			if (a_line.empty()) return;
@@ -994,14 +1041,14 @@ namespace BSM
 		for (const auto& l : General(a_b, a_opt)) add(l);
 		for (const auto* p : OnSide(a_b, Side::kPlayer)) {
 			if (p->dead) continue;
-			if (const auto hurt = Injuries(a_b, *p, false); !hurt.empty()) add(F("injury.memory", { { "name", p->info.name }, { "injuries", hurt } }));
+			if (const auto hurt = Injuries(a_b, *p, false); !hurt.empty()) add(F("injury.memory", { { "name", NameOf(a_b, p->info.id) }, { "injuries", hurt } }));
 			if (!p->WasCritical()) continue;
 			const auto        r = FindRescue(a_b, *p, a_opt);
 			const std::string brink = Brink(a_b, *p, a_opt, r.saviors.empty());
 			if (!r.saviors.empty()) {
-				add(F("memory.rescued", { { "name", p->info.name }, { "brink", brink }, { "deeds", JoinList(r.brief) }, { "saviors", JoinList(Names(a_b, r.saviors)) } }));
+				add(F("memory.rescued", { { "name", NameOf(a_b, p->info.id) }, { "brink", brink }, { "deeds", JoinList(r.brief) }, { "saviors", JoinList(Names(a_b, r.saviors)) } }));
 			} else {
-				add(F("memory.survived", { { "name", p->info.name }, { "brink", brink } }));
+				add(F("memory.survived", { { "name", NameOf(a_b, p->info.id) }, { "brink", brink } }));
 			}
 		}
 		return s;

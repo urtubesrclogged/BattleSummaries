@@ -429,6 +429,19 @@ namespace
 				f.Ally(0xFF000E01, "Ash Guardian", 600, 0xFF000E00, true);
 			} });
 
+		// abac's report: a sneak archer's victims, and the bandit left searching, learned the player's name from the summary
+		j.push_back({ "Stealth",
+			"Four bandits. The player picks off three from the shadows and is never seen; the fourth searches and gives up. Lydia, "
+			"when she is there, is seen by every bandit.",
+			[](std::size_t) { return Many("Bandit", 120, 4); }, 1, 0.05f, [](const std::vector<Member>& m) { return Lead(Dealt(m), 0, 0.9f); }, Taken,
+			{}, true,
+			[](Fight& f) {
+				f.b.trackSight = true;
+				if (const int lydia = f.Find("Lydia"); lydia >= 0)
+					for (ActorId k = 0; k < 4; ++k) f.b.Saw(0xFF000B00 + k, f.party[lydia].id);
+			} });
+		j.back().stopAfter = 3;
+
 		// a dragon at Whiterun: six guards fight it on their own account and one of them dies; the party lands the killing blow
 		j.push_back({ "Allies: guards and a dragon",
 			"A Blood Dragon at Whiterun. Six Whiterun guards fight it too: their arrows do a good part of the damage, and the dragon "
@@ -495,6 +508,15 @@ int RunJourneys(const char* a_path)
 					if (first) Print(out, (std::string(f.party[i].name) + ", about the others").c_str(), s.others);
 					first = false;
 				}
+			}
+			// the first enemy left alive, from their side of it: what one who lived through it was told
+			for (const auto foe : f.foes) {
+				const auto* v = f.b.Find(foe);
+				if (!v || v->dead) continue;
+				const auto s = BuildSummary(f.b, foe, v->info.name, {});
+				Print(out, (v->info.name + " (an enemy who lived), told").c_str(), s.general);
+				Print(out, (v->info.name + " (an enemy who lived), about the party").c_str(), s.others);
+				break;
 			}
 			// an ally, from their own side of it: the first of each name
 			std::vector<std::string> shown;

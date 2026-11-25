@@ -558,6 +558,7 @@ namespace BSM::Tracker
 				g_current->location = WhereNow();
 				g_current->nearDeathPct = cfg.nearDeathPct;
 				g_current->omitBystanders = !cfg.mentionBystanders;
+				g_current->trackSight = true;
 				g_live.clear();
 				g_recentHeals.clear();
 				g_alias.clear();
@@ -609,9 +610,24 @@ namespace BSM::Tracker
 			auto* pl = RE::ProcessLists::GetSingleton();
 			auto* pc = RE::PlayerCharacter::GetSingleton();
 			if (!pl || !pc) return;
+			// the player's side as it stands, to ask each one about: who has seen them is told their names (Battle::Saw)
+			std::vector<std::pair<ActorId, RE::Actor*>> party;
+			if (g_current) {
+				for (const auto& p : g_current->participants) {
+					if (p.info.side != Side::kPlayer || p.info.summon || p.dead) continue;
+					const auto lk = g_live.find(p.info.id);
+					if (auto* a = p.info.isPlayer ? pc : lk != g_live.end() ? lk->second.handle.get().get() : Lookup(p.info.id)) party.emplace_back(p.info.id, a);
+				}
+			}
 			for (auto& h : pl->highActorHandles) {
 				const auto a = h.get();
-				if (a && !a->IsDead() && a->GetPosition().GetDistance(pc->GetPosition()) <= Settings::Get().witnessRange) g_siteWitnesses.insert(a->GetFormID());
+				if (!a || a->IsDead() || a->GetPosition().GetDistance(pc->GetPosition()) > Settings::Get().witnessRange) continue;
+				g_siteWitnesses.insert(a->GetFormID());
+				const ActorId viewer = Key(a->GetFormID());
+				for (const auto& [id, member] : party) {
+					if (member == a.get() || g_current->SawThem(viewer, id)) continue;
+					if (a->RequestDetectionLevel(member) > 0) g_current->Saw(viewer, id);
+				}
 			}
 		}
 
