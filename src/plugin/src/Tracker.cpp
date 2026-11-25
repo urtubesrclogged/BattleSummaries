@@ -44,7 +44,8 @@ namespace BSM::Tracker
 				kDeath,     // a died, killed by b
 				kBleedout,  // a went down
 				kEffect,    // magic effect `effect` from b took hold on a
-				kLimb       // a's body lost a limb (amount 2: the head), as another mod's script answered
+				kLimb,      // a's body lost a limb (amount 2: the head), as another mod's script answered
+				kSight      // a was struck by b, one of the player's side, and could see them to the degree amount (0: not at all)
 			};
 			Type       type;
 			ActorId    a{ 0 };
@@ -626,7 +627,10 @@ namespace BSM::Tracker
 				const ActorId viewer = Key(a->GetFormID());
 				for (const auto& [id, member] : party) {
 					if (member == a.get() || g_current->SawThem(viewer, id)) continue;
-					if (a->RequestDetectionLevel(member) > 0) g_current->Saw(viewer, id);
+					if (const auto level = a->RequestDetectionLevel(member); level > 0) {
+						g_current->Saw(viewer, id, Now());
+						SKSE::log::debug("sight: {} ({:08X}) detected {:08X} at {:.1f}s (level {})", a->GetName(), a->GetFormID(), id, Now() - g_current->startedAt, level);
+					}
 				}
 			}
 		}
@@ -759,6 +763,16 @@ namespace BSM::Tracker
 				RecordLimb(Key(a_r.a), a_r.amount > 1.5f);
 				return;
 			}
+			if (a_r.type == Report::Type::kSight) {
+				if (!g_current) return;
+				if (a_r.amount > 0.0f) {
+					if (g_current->Saw(Key(a_r.a), Key(a_r.b), a_r.at))
+						SKSE::log::debug("sight: {:08X} saw {:08X} strike them at {:.1f}s (level {:.0f})", a_r.a, a_r.b, a_r.at - g_current->startedAt, a_r.amount);
+				} else if (!g_current->SawThem(Key(a_r.a), Key(a_r.b))) {
+					SKSE::log::debug("sight: {:08X} was struck by {:08X} without seeing them, at {:.1f}s", a_r.a, a_r.b, a_r.at - g_current->startedAt);
+				}
+				return;
+			}
 			auto* pc = RE::PlayerCharacter::GetSingleton();
 			auto* a = Lookup(a_r.a);
 			auto* b = Lookup(a_r.b);
@@ -813,6 +827,9 @@ namespace BSM::Tracker
 						MarkCameToFight(*v, "entered combat unstruck, aggressive by nature");
 					}
 				}
+				// who saw it done: asked at the kill, not up to a second later (a witness who looked only afterwards, at the one
+				// standing over the body, did not see who made it)
+				if (const auto* k = g_current->Find(Key(a_r.b)); k && k->info.side == Side::kPlayer) ScanWitnesses();
 				g_current->Death(Key(a_r.a), Key(a_r.b), a_r.at);
 				// with what: the spell the killer's harmful magic came from just before, else the weapon in the killer's hand
 				if (auto* v = g_current->Find(Key(a_r.a)); v && v->dead && v->killer != 0 && v->killedWith.empty()) {
@@ -1118,7 +1135,8 @@ namespace BSM::Tracker
 			RE::BSTEventSink<RE::TESCombatEvent>,
 			RE::BSTEventSink<RE::TESDeathEvent>,
 			RE::BSTEventSink<RE::TESEnterBleedoutEvent>,
-			RE::BSTEventSink<RE::TESMagicEffectApplyEvent>
+			RE::BSTEventSink<RE::TESMagicEffectApplyEvent>,
+			RE::BSTEventSink<RE::TESHitEvent>
 		{
 			static Sink* Get()
 			{
@@ -1144,6 +1162,22 @@ namespace BSM::Tracker
 			{
 				Perf::Scope timed{ Perf::eventSink };
 				if (a_e && Id(a_e->actorDying)) Push({ Report::Type::kDeath, Id(a_e->actorDying), Id(a_e->actorKiller) });
+				return RE::BSEventNotifyControl::kContinue;
+			}
+
+			// A blow from one of the player's side: could the one struck see who struck them? Asked at the blow, while they
+			// live: one killed outright died before the witness scan ever asked them (Hjoromir, looking right at the player,
+			// was told as killed unseen).
+			RE::BSEventNotifyControl ProcessEvent(const RE::TESHitEvent* a_e, RE::BSTEventSource<RE::TESHitEvent>*) override
+			{
+				Perf::Scope timed{ Perf::eventSink };
+				if (!a_e || !Id(a_e->target) || !Id(a_e->cause) || a_e->target == a_e->cause) return RE::BSEventNotifyControl::kContinue;
+				auto* by = a_e->cause->As<RE::Actor>();
+				auto* struck = a_e->target->As<RE::Actor>();
+				if (!by || !struck || !(by->IsPlayerRef() || by->IsPlayerTeammate())) return RE::BSEventNotifyControl::kContinue;
+				Report r{ Report::Type::kSight, struck->GetFormID(), by->GetFormID() };
+				r.amount = static_cast<float>(std::max(0, struck->RequestDetectionLevel(by)));
+				Push(r);
 				return RE::BSEventNotifyControl::kContinue;
 			}
 
@@ -1292,6 +1326,7 @@ namespace BSM::Tracker
 		src->AddEventSink<RE::TESDeathEvent>(Sink::Get());
 		src->AddEventSink<RE::TESEnterBleedoutEvent>(Sink::Get());
 		src->AddEventSink<RE::TESMagicEffectApplyEvent>(Sink::Get());
+		src->AddEventSink<RE::TESHitEvent>(Sink::Get());
 
 		// HandleHealthDamage is vfunc 0x104 on SE/AE and 0x106 on VR (CommonLibVR's Actor.h: VR's table gains two slots
 		// before it).

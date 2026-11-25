@@ -44,6 +44,8 @@ namespace BSM::Text
 			{ "Lists", "name.someone", "someone", "an actor with no name" },
 			{ "Lists", "name.unseen", "an unseen attacker", "one of the player's side the reader never saw (a sneak attack): their name is not known" },
 			{ "Lists", "name.unseen_count", "{count} unseen attackers", "several of them, in a list" },
+			{ "Lists", "unseen.unknown", "Nobody saw the unseen attacker; who it was is not known.",
+				"to anyone told of an unseen attacker, so the one they are talking to is not taken for them" },
 			{ "Lists", "name.nobody", "no one in particular", "damage or a kill with nobody behind it" },
 			{ "Lists", "name.commanded", "{name} (commanded by {master})", "a summoned or raised creature" },
 			{ "Lists", "name.summons_of", "{master}'s {summons}", "a summoned or raised creature, by whoever commands it: it drew the enemy's blows" },
@@ -95,7 +97,7 @@ namespace BSM::Text
 			{ "Outcome", "share.percent", "(about {percent}%)", "only with bShowNumbers: a fighter's part of the party's damage" },
 			{ "Outcome", "summons.dispatched", "Summoned creatures dispatched: {tally}.", "the enemy's summoned or raised creatures, by who put an end to them" },
 			{ "Outcome", "tally.through", "{count} through {summons}", "kills a summoned creature made, credited to whoever summoned it" },
-			{ "Outcome", "tally.unseen", "{count} unseen", "kills of victims who never saw their killer; only to those who know who the killer was" },
+			{ "Outcome", "tally.unseen", "{count} unseen", "kills of victims who never saw their killer; only to the party" },
 
 			// ---------------------------------------------------------------- deaths
 			{ "Deaths", "killed.by", "was killed by {killer}", "" },

@@ -33,9 +33,14 @@ namespace BSM
 			return out;
 		}
 
-		// The one account being built: those of the player's side its reader never saw, told as "an unseen attacker"
-		// (BuildSummary, BuildMemory set it).
-		thread_local const std::set<ActorId>* g_unseen = nullptr;
+		// The one account being built: those of the player's side its reader never saw, told as "an unseen attacker", and
+		// who reads it when they are not of the party (BuildSummary, BuildMemory set them). Null readers: the party's own
+		// account, which knows who did everything.
+		thread_local const std::set<ActorId>*    g_unseen = nullptr;
+		thread_local const std::vector<ActorId>* g_readers = nullptr;
+
+		// stands for the killer in a kill none of the readers saw made
+		constexpr ActorId kUnseenKiller = 0xFFFFFFFF;
 
 		bool Unseen(ActorId a_id) { return g_unseen && g_unseen->contains(a_id); }
 
@@ -43,12 +48,47 @@ namespace BSM
 
 		struct UnseenScope
 		{
-			const std::set<ActorId>* was;
-			explicit UnseenScope(const std::set<ActorId>* a_set) : was(g_unseen) { g_unseen = a_set; }
-			~UnseenScope() { g_unseen = was; }
+			const std::set<ActorId>*    was;
+			const std::vector<ActorId>* wasReaders;
+			UnseenScope(const std::set<ActorId>* a_set, const std::vector<ActorId>* a_readers) : was(g_unseen), wasReaders(g_readers)
+			{
+				g_unseen = a_set;
+				g_readers = a_readers;
+			}
+			~UnseenScope()
+			{
+				g_unseen = was;
+				g_readers = wasReaders;
+			}
 			UnseenScope(const UnseenScope&) = delete;
 			UnseenScope& operator=(const UnseenScope&) = delete;
 		};
+
+		// Who the readers are told killed a_v: one of the party only if every reader had seen them by the moment of the
+		// kill (their summon's kill goes by the summoner), else kUnseenKiller.
+		ActorId Told(const Battle& a_b, const Participant& a_v)
+		{
+			if (a_v.killer == 0) return 0;
+			const auto* k = a_b.Find(a_v.killer);
+			if (!k) return a_v.killer;
+			const ActorId who = k->info.summon && k->info.master != 0 && a_b.Find(k->info.master) ? k->info.master : k->info.id;
+			const auto*   w = a_b.Find(who);
+			if (!w || w->info.side != Side::kPlayer || w->info.summon) return a_v.killer;
+			if (Unseen(who)) return kUnseenKiller;
+			if (g_readers) {
+				for (const auto r : *g_readers) {
+					if (!a_b.SawBy(r, who, a_v.diedAt)) return kUnseenKiller;
+				}
+			}
+			return a_v.killer;
+		}
+
+		// anything of the party kept from the readers: a name, or who made a kill
+		bool AnyHidden(const Battle& a_b)
+		{
+			if (g_unseen && !g_unseen->empty()) return true;
+			return std::ranges::any_of(a_b.participants, [&](const Participant& p) { return p.dead && a_b.Involved(p) && Told(a_b, p) == kUnseenKiller; });
+		}
 
 		// Several fighters of one name are told apart by the order they joined: "the first Troll", "the second Troll". The
 		// same one keeps its number in every line and every NPC's account, so a reader can follow who did what. Lists keep
@@ -70,6 +110,7 @@ namespace BSM
 		std::string NameOf(const Battle& a_b, ActorId a_id)
 		{
 			if (a_id == 0) return T("name.nobody");
+			if (a_id == kUnseenKiller) return T("name.unseen");
 			const auto* p = a_b.Find(a_id);
 			if (!p || p->info.name.empty()) return T("name.someone");
 			return Numbered(a_b, *p);
@@ -87,6 +128,7 @@ namespace BSM
 		// "was killed by Bandit Chief"; "was killed, by whom is not known" when the killer is nobody the battle saw
 		std::string KilledBy(const Battle& a_b, ActorId a_killer)
 		{
+			if (a_killer == kUnseenKiller) return F("killed.by", { { "killer", T("name.unseen") } });
 			if (a_killer == 0 || !a_b.Find(a_killer)) return T("killed.unknown");
 			return F("killed.by", { { "killer", CreditName(a_b, a_killer) } });
 		}
@@ -315,11 +357,11 @@ namespace BSM
 					r.deeds.push_back(Cap(F(downedThem ? "rescue.recovered" : "rescue.recovered_wounded", { { "name", Shown(a_p) }, { "assailant", assailant }, { "what", what } })));
 				} else if (a->killer != 0) {
 					r.deeds.push_back(Cap(F(downedThem ? "rescue.assailant_killed" : "rescue.assailant_wounded",
-						{ { "assailant", assailant }, { "what", what }, { "name", Shown(a_p) }, { "killer", CreditName(a_b, a->killer) } })));
+						{ { "assailant", assailant }, { "what", what }, { "name", Shown(a_p) }, { "killer", CreditName(a_b, Told(a_b, *a)) } })));
 					// a foe who happened to kill the assailant (monsters turning on each other) saved nobody
 					const auto* k = a_b.Find(a->killer);
 					if (!k || a_b.EffectiveSide(*k) == Opposing(mine)) continue;
-					r.brief.push_back(F("rescue.brief_killed", { { "killer", NameOf(a_b, a->killer) }, { "assailant", assailant } }));
+					r.brief.push_back(F("rescue.brief_killed", { { "killer", NameOf(a_b, Told(a_b, *a)) }, { "assailant", assailant } }));
 					addSavior(k->info.master != 0 && a_b.Find(k->info.master) ? k->info.master : a->killer);
 				}
 			}
@@ -386,12 +428,13 @@ namespace BSM
 				if (a_summons && v->killer == 0) continue;  // dismissed or expired: nobody's doing
 				const auto* k = a_b.Find(v->killer);
 				if (OwnSideKill(a_b, *v)) continue;  // told apart (OwnSideDeaths): not one of the other side's killers
-				const bool  bySummon = k && k->info.summon && k->info.master != 0 && a_b.Find(k->info.master);
-				const auto  credited = bySummon ? k->info.master : v->killer;
+				const bool  hidden = Told(a_b, *v) == kUnseenKiller;
+				const bool  bySummon = !hidden && k && k->info.summon && k->info.master != 0 && a_b.Find(k->info.master);
+				const auto  credited = hidden ? kUnseenKiller : bySummon ? k->info.master : v->killer;
 				auto        it = std::ranges::find_if(tally, [&](const Entry& t) { return t.killer == credited; });
 				if (it == tally.end()) it = tally.insert(tally.end(), { credited, {}, {}, 0, 0 });
 				it->victims.push_back(v);
-				if (v->killedUnseen) ++it->unseen;
+				if (a_b.KilledUnseen(*v)) ++it->unseen;
 				if (bySummon) ++it->bySummons;
 				if (bySummon && std::ranges::none_of(it->summons, [&](const Participant* q) { return q->info.name == k->info.name; })) it->summons.push_back(k);
 			}
@@ -402,7 +445,8 @@ namespace BSM
 				std::vector<std::string> notes;
 				if (victims.size() <= 3) notes.push_back(Grouped(victims));
 				if (!summons.empty()) notes.push_back(F("tally.through", { { "count", N(bySummons) }, { "summons", Grouped(summons) } }));
-				if (unseen > 0 && !Unseen(killer)) notes.push_back(F("tally.unseen", { { "count", N(unseen) } }));
+				// which kills were made unseen is the party's knowledge, not the readers'
+				if (unseen > 0 && !g_readers && killer != kUnseenKiller) notes.push_back(F("tally.unseen", { { "count", N(unseen) } }));
 				std::string inner;
 				for (const auto& n : notes) inner += (inner.empty() ? "" : ", ") + n;
 				items.push_back((killer == 0 ? T("tally.unknown") : CreditName(a_b, killer)) + " " + N(victims.size()) + (inner.empty() ? std::string() : " (" + inner + ")"));
@@ -490,8 +534,9 @@ namespace BSM
 			std::vector<Group> groups;
 			for (const auto& p : a_b.participants) {
 				if (!p.dead || !p.dismembered || !a_b.Involved(p)) continue;
-				const auto it = std::ranges::find_if(groups, [&](const Group& g) { return g.killer == p.killer && g.beheaded == p.beheaded; });
-				if (it == groups.end()) groups.push_back({ p.killer, p.beheaded, { &p } });
+				const auto told = Told(a_b, p);
+				const auto it = std::ranges::find_if(groups, [&](const Group& g) { return g.killer == told && g.beheaded == p.beheaded; });
+				if (it == groups.end()) groups.push_back({ told, p.beheaded, { &p } });
 				else it->victims.push_back(&p);
 			}
 			std::vector<std::string> out;
@@ -533,7 +578,7 @@ namespace BSM
 				std::vector<const Participant*> dead;
 				for (const auto id : k.kills) {
 					const auto* v = a_b.Find(id);
-					if (v && v->dead && !v->info.summon && v->diedAt >= 0.0 && a_b.Involved(*v) && a_b.EffectiveSide(*v) == foes) dead.push_back(v);
+					if (v && v->dead && !v->info.summon && v->diedAt >= 0.0 && a_b.Involved(*v) && a_b.EffectiveSide(*v) == foes && Told(a_b, *v) != kUnseenKiller) dead.push_back(v);
 				}
 				std::ranges::stable_sort(dead, [](const Participant* a, const Participant* b) { return a->diedAt < b->diedAt; });
 				for (std::size_t i = 0; i < dead.size();) {
@@ -620,7 +665,7 @@ namespace BSM
 			out.push_back(F("personal.wounds_dealt", { { "name", n }, { "wounds", Wounds(a_b, a_p, a_opt) }, { "dealt", Dealt(a_b, a_p, a_opt) } }));
 
 			if (a_p.dead) {
-				out.push_back(F("killed.line", { { "name", n }, { "killed", KilledBy(a_b, a_p.killer) }, { "own_side", "" } }));
+				out.push_back(F("killed.line", { { "name", n }, { "killed", KilledBy(a_b, Told(a_b, a_p)) }, { "own_side", "" } }));
 			} else if (const auto brink = Brink(a_b, a_p, a_opt); !brink.empty()) {
 				out.push_back(F("personal.fact", { { "name", n }, { "fact", brink } }));
 			} else if (a_p.startHealthPct < a_b.nearDeathPct) {
@@ -683,8 +728,8 @@ namespace BSM
 			if (mine > 0) {
 				out.push_back(F("kills.mine", { { "name", n }, { "count", N(mine) }, { "total", N(all) }, { "victims", mine <= 3 ? ": " + Grouped(victims) : std::string() } }));
 				if (bySummons > 0) out.push_back(F("kills.through", { { "count", N(bySummons) }, { "summons", Grouped(summons) } }));
-				const auto unseen = std::ranges::count_if(victims, [&](const Participant* v) { return v->killer == a_p.info.id && v->killedUnseen; });
-				if (unseen > 0 && !Unseen(a_p.info.id)) out.push_back(F("kills.unseen", { { "count", N(static_cast<int>(unseen)) } }));
+				const auto unseen = std::ranges::count_if(victims, [&](const Participant* v) { return v->killer == a_p.info.id && a_b.KilledUnseen(*v); });
+				if (unseen > 0 && !g_readers && !Unseen(a_p.info.id)) out.push_back(F("kills.unseen", { { "count", N(static_cast<int>(unseen)) } }));
 			}
 			else if (all > 0) out.push_back(F("kills.none", { { "name", n }, { "total", N(all) } }));
 
@@ -710,7 +755,7 @@ namespace BSM
 		{
 			const Side foes = Opposing(a_b.EffectiveSide(a_p));
 			std::vector<std::string> bits{ Wounds(a_b, a_p, a_opt), Dealt(a_b, a_p, a_opt) };
-			if (a_p.dead) bits.push_back(KilledBy(a_b, a_p.killer));
+			if (a_p.dead) bits.push_back(KilledBy(a_b, Told(a_b, a_p)));
 			else if (const auto brink = Brink(a_b, a_p, a_opt); !brink.empty()) {
 				bits.push_back(brink);
 				const auto r = FindRescue(a_b, a_p, a_opt);
@@ -951,21 +996,21 @@ namespace BSM
 				// killed by their own side: said outright, accident or not
 				const auto* k = a_b.Find(p->killer);
 				const bool  ownSide = k && k->info.id != p->info.id && Friends(a_b.EffectiveSide(*k), Side::kPlayer);
-				out.push_back(F("killed.line", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, p->killer) }, { "own_side", ownSide ? ", " + T("killed.own_side") : std::string() } }));
+				out.push_back(F("killed.line", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, Told(a_b, *p)) }, { "own_side", ownSide ? ", " + T("killed.own_side") : std::string() } }));
 			}
 			for (const auto* p : allies) {
 				if (!p->dead) continue;
 				const auto* k = a_b.Find(p->killer);
 				const bool  ownSide = k && k->info.id != p->info.id && Friends(a_b.EffectiveSide(*k), Side::kAlly);
-				out.push_back(F("killed.line", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, p->killer) }, { "own_side", ownSide ? ", " + T("killed.own_side") : std::string() } }));
+				out.push_back(F("killed.line", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, Told(a_b, *p)) }, { "own_side", ownSide ? ", " + T("killed.own_side") : std::string() } }));
 			}
 			for (const auto* p : enemies) {
 				if (!p->dead || !OwnSideKill(a_b, *p)) continue;
-				out.push_back(F("killed.line", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, p->killer) }, { "own_side", ", " + T("killed.own_side") } }));
+				out.push_back(F("killed.line", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, Told(a_b, *p)) }, { "own_side", ", " + T("killed.own_side") } }));
 			}
 			for (const auto* p : others) {
 				if (a_b.omitBystanders || !p->dead || !a_b.Innocent(*p)) continue;
-				out.push_back(F("killed.not_fighting", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, p->killer) } }));
+				out.push_back(F("killed.not_fighting", { { "name", NameOf(a_b, p->info.id) }, { "killed", KilledBy(a_b, Told(a_b, *p)) } }));
 			}
 			for (auto& m : KilledAtOnce(a_b)) out.push_back(std::move(m));
 			for (auto& m : Maimings(a_b)) out.push_back(std::move(m));
@@ -978,20 +1023,27 @@ namespace BSM
 		Summary r;
 		if (a_b.participants.empty()) return r;
 		// one outside the party knows of the party only those they saw
-		std::set<ActorId> unseen;
+		std::set<ActorId>    unseen;
+		std::vector<ActorId> readers;
+		bool                 outsider = false;
 		if (a_b.trackSight) {
 			const auto* v = a_b.Find(a_viewer);
-			if (!v || !a_b.Involved(*v) || a_b.EffectiveSide(*v) != Side::kPlayer) {
+			outsider = !v || !a_b.Involved(*v) || a_b.EffectiveSide(*v) != Side::kPlayer;
+			if (outsider) {
+				readers.push_back(a_viewer);
 				for (const auto& p : a_b.participants) {
 					if (p.info.side == Side::kPlayer && !p.info.summon && !a_b.SawThem(a_viewer, p.info.id)) unseen.insert(p.info.id);
 				}
 			}
 		}
-		const UnseenScope scope{ &unseen };
+		const UnseenScope scope{ &unseen, outsider ? &readers : nullptr };
 		r.show = true;
 		r.ongoing = a_b.Ongoing();
 		r.name = a_viewerName;
 		r.general = General(a_b, a_opt);
+		// said plainly, so whoever they are talking to is not taken for the one who did it (Delphine, told "an unseen
+		// attacker" killed Sven, blamed the player she was speaking to)
+		if (outsider && AnyHidden(a_b)) r.general.push_back(T("unseen.unknown"));
 		for (auto& l : r.general) l = Cap(std::move(l));
 
 		const auto* me = a_b.Find(a_viewer);
@@ -1022,16 +1074,20 @@ namespace BSM
 	{
 		// Filed for everyone nearby, the enemies who lived among them: one of the party is named only if every enemy left
 		// alive saw them.
-		std::set<ActorId> unseen;
+		std::set<ActorId>    unseen;
+		std::vector<ActorId> readers;
 		if (a_b.trackSight) {
+			for (const auto& q : a_b.participants) {
+				if (!q.dead && a_b.Involved(q) && a_b.EffectiveSide(q) == Side::kEnemy) readers.push_back(q.info.id);
+			}
 			for (const auto& p : a_b.participants) {
 				if (p.info.side != Side::kPlayer || p.info.summon) continue;
-				for (const auto& q : a_b.participants) {
-					if (!q.dead && a_b.Involved(q) && a_b.EffectiveSide(q) == Side::kEnemy && !a_b.SawThem(q.info.id, p.info.id)) unseen.insert(p.info.id);
+				for (const auto r : readers) {
+					if (!a_b.SawThem(r, p.info.id)) unseen.insert(p.info.id);
 				}
 			}
 		}
-		const UnseenScope scope{ &unseen };
+		const UnseenScope scope{ &unseen, a_b.trackSight ? &readers : nullptr };
 		std::string s;
 		const auto  add = [&](const std::string& a_line) {
 			if (a_line.empty()) return;

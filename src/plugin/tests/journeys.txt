@@ -1967,6 +1967,7 @@ Four bandits. The player picks off three from the shadows and is never seen; the
     An unseen attacker fought against Bandit x4.
     3 of the 4 enemies were killed; the rest fled, yielded or broke off.
     Who killed the enemies: an unseen attacker 3 (Bandit x3).
+    Nobody saw the unseen attacker; who it was is not known.
   [a witness, about the fighters]
     None of them was seriously hurt or in any real danger.
   [Bandit (an enemy who lived), told]
@@ -1974,6 +1975,7 @@ Four bandits. The player picks off three from the shadows and is never seen; the
     An unseen attacker fought against Bandit x4.
     3 of the 4 enemies were killed; the rest fled, yielded or broke off.
     Who killed the enemies: an unseen attacker 3 (Bandit x3).
+    Nobody saw the unseen attacker; who it was is not known.
   [Bandit (an enemy who lived), about the party]
     The first Bandit: took a brutal amount of damage; dealt only a small part of their side's damage; was killed by an unseen attacker; killed none of the other side.
     The second Bandit: took a brutal amount of damage; dealt a fair share of their side's damage; was killed by an unseen attacker; killed none of the other side.
@@ -2001,6 +2003,7 @@ Four bandits. The player picks off three from the shadows and is never seen; the
     3 of the 4 enemies were killed; the rest fled, yielded or broke off.
     Who killed the enemies: an unseen attacker 3 (Bandit x3).
     Most of the party's damage to the enemy was dealt by an unseen attacker.
+    Nobody saw the unseen attacker; who it was is not known.
   [Bandit (an enemy who lived), about the party]
     The first Bandit: took a brutal amount of damage; dealt only a small part of their side's damage; was killed by an unseen attacker; killed none of the other side.
     The second Bandit: took a brutal amount of damage; dealt a fair share of their side's damage; was killed by an unseen attacker; killed none of the other side.
@@ -2040,6 +2043,7 @@ Four bandits. The player picks off three from the shadows and is never seen; the
     3 of the 4 enemies were killed; the rest fled, yielded or broke off.
     Who killed the enemies: an unseen attacker 3 (Bandit x3).
     Most of the party's damage to the enemy was dealt by an unseen attacker.
+    Nobody saw the unseen attacker; who it was is not known.
   [Bandit (an enemy who lived), about the party]
     The first Bandit: was badly hurt, taking nearly a full body's worth of damage; dealt only a small part of their side's damage; was killed by an unseen attacker; killed none of the other side.
     The second Bandit: was badly hurt, taking nearly a full body's worth of damage; dealt a fair share of their side's damage; was killed by an unseen attacker; killed none of the other side.
@@ -2101,6 +2105,7 @@ Four bandits. The player picks off three from the shadows and is never seen; the
     Who killed the enemies: an unseen attacker 3 (Bandit x3).
     Most of the party's damage to the enemy was dealt by an unseen attacker.
     Lydia, an unseen attacker, an unseen attacker and 2 others took the enemy's blows between them.
+    Nobody saw the unseen attacker; who it was is not known.
   [Bandit (an enemy who lived), about the party]
     The first Bandit: was badly hurt, taking nearly a full body's worth of damage; dealt only a small part of their side's damage; was killed by an unseen attacker; killed none of the other side.
     The second Bandit: was badly hurt, taking nearly a full body's worth of damage; dealt a fair share of their side's damage; was killed by an unseen attacker; killed none of the other side.

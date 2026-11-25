@@ -227,6 +227,13 @@ namespace BSM
 		return !carriesDamage;
 	}
 
+	bool Battle::KilledUnseen(const Participant& a_v) const
+	{
+		if (!a_v.dead || a_v.killer == 0) return false;
+		const auto* k = Find(a_v.killer);
+		return k && k->info.side == Side::kPlayer && !k->info.summon && !SawThem(a_v.info.id, a_v.killer);
+	}
+
 	bool Battle::Aura(const EffectNote& a_e) const
 	{
 		const auto* caster = Find(a_e.by);
@@ -362,7 +369,6 @@ namespace BSM
 		v->dead = true;
 		v->isDown = false;
 		v->killer = a_killer;
-		if (const auto* k = Find(a_killer); k && k->info.side == Side::kPlayer && !k->info.summon && !SawThem(a_victim, a_killer)) v->killedUnseen = true;
 		v->diedAt = a_now;
 		v->minHealthPct = 0.0f;
 		if (auto* k = Find(a_killer)) {

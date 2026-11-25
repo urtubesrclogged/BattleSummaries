@@ -138,8 +138,6 @@ namespace BSM
 
 		bool    dead{ false };
 		ActorId killer{ 0 };
-		// killed by one of the player's side they had never seen (a sneak attack, an arrow from the dark)
-		bool    killedUnseen{ false };
 		std::string killedWith;  // the spell or weapon that did it ("Fireball", "Steel Greatsword"); empty = not known
 		double  diedAt{ -1.0 };
 
@@ -195,19 +193,36 @@ namespace BSM
 		// attacker" in their place: abac's report, enemies searching for a sneak archer learned the player's name from the
 		// summary. Off (the offline tests unless they turn it on): everyone saw everyone.
 		bool        trackSight{ false };
-		std::map<ActorId, std::set<ActorId>> seenBy;  // one of the player's side -> who has detected them
+		// one of the player's side -> who has detected them, and when first. By the time: a witness who saw the player only
+		// after a kill is not told who made it (Librum, the Sleeping Giant: Sven killed unseen, the inn told it was the
+		// player because they saw them in the fight that followed).
+		std::map<ActorId, std::map<ActorId, double>> seenBy;
 
 		std::vector<Participant> participants;  // in the order they joined
 
 		[[nodiscard]] bool Ongoing() const { return endedAt < 0.0; }
 
-		void Saw(ActorId a_viewer, ActorId a_target) { seenBy[a_target].insert(a_viewer); }
-		[[nodiscard]] bool SawThem(ActorId a_viewer, ActorId a_target) const
+		// Records that a_viewer detected a_target at a_at (left out: from before the battle). True when it is the first time.
+		bool Saw(ActorId a_viewer, ActorId a_target, double a_at = -1.0e9)
+		{
+			auto&      seen = seenBy[a_target];
+			const auto [it, first] = seen.emplace(a_viewer, a_at);
+			if (!first && a_at < it->second) it->second = a_at;
+			return first;
+		}
+		// at any time in the battle
+		[[nodiscard]] bool SawThem(ActorId a_viewer, ActorId a_target) const { return SawBy(a_viewer, a_target, 1.0e18); }
+		// by a_at (a kill's moment): sight is sampled, so a moment's slack
+		[[nodiscard]] bool SawBy(ActorId a_viewer, ActorId a_target, double a_at) const
 		{
 			if (!trackSight || a_viewer == a_target) return true;
 			const auto it = seenBy.find(a_target);
-			return it != seenBy.end() && it->second.contains(a_viewer);
+			if (it == seenBy.end()) return false;
+			const auto at = it->second.find(a_viewer);
+			return at != it->second.end() && at->second <= a_at + 0.3;
 		}
+		// killed by one of the player's side they had never seen (a sneak attack, an arrow from the dark)
+		[[nodiscard]] bool KilledUnseen(const Participant& a_victim) const;
 
 		[[nodiscard]] Participant*       Find(ActorId a_id);
 		[[nodiscard]] const Participant* Find(ActorId a_id) const;

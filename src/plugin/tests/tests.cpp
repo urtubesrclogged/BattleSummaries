@@ -1286,6 +1286,31 @@ namespace
 		Check(!Has(memory, "Kaira") && Has(memory, "Lydia"), "the remembered event, filed where the searcher lives: the player unnamed", memory);
 		b.Saw(kSearcher, kHero);
 		Check(Has(BuildMemory(b, {}), "Kaira and Lydia fought against"), "every enemy left alive saw them: named", BuildMemory(b, {}));
+		const auto seenAll = SummaryText(BuildSummary(b, kSearcher, "Bandit Outlaw", {}));
+		Check(!Has(seenAll, "Nobody saw") && !Has(seenAll, "unseen"), "one who saw them all along: nothing hidden, no unseen count", seenAll);
+
+		// Librum, the Sleeping Giant: Sven killed unseen; the inn turned on the player, saw them, and Hjoromir was killed in
+		// plain view. The inn knows who killed Hjoromir, not who killed Sven; the player's own account has both.
+		constexpr ActorId kSven = 0xFF000E60, kHjoromir = 0xFF000E61, kOrgnar = 0xFF000E62;
+		Battle inn;
+		inn.startedAt = 0;
+		inn.trackSight = true;
+		inn.Join(Info(kHero, "Dave", Side::kPlayer, 300));
+		inn.Join(Info(kSven, "Sven", Side::kEnemy, 100));
+		inn.Damage(kSven, kHero, 100, 0.0f, 1);
+		inn.Death(kSven, kHero, 1);
+		inn.Join(Info(kHjoromir, "Hjoromir", Side::kEnemy, 100));
+		inn.Saw(kOrgnar, kHero, 12);
+		inn.Saw(kHjoromir, kHero, 12);
+		inn.Damage(kHjoromir, kHero, 100, 0.0f, 14);
+		inn.Death(kHjoromir, kHero, 14);
+		inn.endedAt = 20;
+		const auto orgnar = SummaryText(BuildSummary(inn, kOrgnar, "Orgnar", {}));
+		Check(Has(orgnar, "Dave fought against") && Has(orgnar, "an unseen attacker 1 (Sven)") && Has(orgnar, "Dave 1 (Hjoromir)") && !Has(orgnar, "unseen)")
+				&& Has(orgnar, "Nobody saw the unseen attacker"),
+			"seen only after the first kill: that kill unseen, the next one named, and nobody's guess", orgnar);
+		const auto dave = SummaryText(BuildSummary(inn, kHero, "Dave", {}));
+		Check(Has(dave, "Dave 2 (Sven and Hjoromir, 1 unseen)") && !Has(dave, "Nobody saw"), "the player knows both, and which one was unseen", dave);
 	}
 
 	void TestDuration()
