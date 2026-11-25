@@ -926,7 +926,14 @@ namespace BSM::Tracker
 			}
 			if (reports.size() > Perf::queueHigh.load(std::memory_order_relaxed)) Perf::queueHigh = reports.size();
 			g_knownListed = false;
-			for (const auto& r : reports) Handle(r);
+			// what the one struck could see is filed last: it can come in ahead of the blow that begins or resumes the battle,
+			// and was lost (Librum, a bandit killed a moment after the fight before had ended). Each carries its own time.
+			for (const auto& r : reports) {
+				if (r.type != Report::Type::kSight) Handle(r);
+			}
+			for (const auto& r : reports) {
+				if (r.type == Report::Type::kSight) Handle(r);
+			}
 			g_known.clear();
 			g_knownListed = false;
 		}
