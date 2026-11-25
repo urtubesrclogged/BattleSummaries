@@ -74,6 +74,8 @@ namespace BSM::Tracker
 		std::mutex            g_lock;
 		std::optional<Battle> g_current;
 		std::deque<Battle>    g_history;  // newest first
+		std::vector<Report>   g_heldSight;  // sight records that came before their battle (Drain); main thread
+		constexpr double      kHoldSight = 1.5;
 
 		struct Extra  // what the tracker knows about a battle beyond the model
 		{
@@ -928,11 +930,18 @@ namespace BSM::Tracker
 			g_knownListed = false;
 			// what the one struck could see is filed last: it can come in ahead of the blow that begins or resumes the battle,
 			// and was lost (Librum, a bandit killed a moment after the fight before had ended). Each carries its own time.
+			// With no battle yet it is held a moment for the next pass: a sneak kill's blow can come in a pass before the
+			// death that begins the battle (Librum, Ra'Desi).
+			std::vector<Report> sight;
+			sight.swap(g_heldSight);
 			for (const auto& r : reports) {
-				if (r.type != Report::Type::kSight) Handle(r);
+				if (r.type == Report::Type::kSight) sight.push_back(r);
+				else Handle(r);
 			}
-			for (const auto& r : reports) {
-				if (r.type == Report::Type::kSight) Handle(r);
+			const double now = Now();
+			for (const auto& r : sight) {
+				if (g_current) Handle(r);
+				else if (now - r.at <= kHoldSight) g_heldSight.push_back(r);
 			}
 			g_known.clear();
 			g_knownListed = false;
@@ -1367,6 +1376,7 @@ namespace BSM::Tracker
 		g_current.reset();
 			g_battleOn = false;
 		g_history.clear();
+		g_heldSight.clear();
 		g_extra.clear();
 		g_live.clear();
 		g_recentHeals.clear();
