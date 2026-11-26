@@ -22,7 +22,7 @@
   "languages": [
     "en"
   ],
-  "version": "1.6.0",
+  "version": "1.6.1",
   "changelog": "Allies: someone not in your party who fights your enemies (Neloth, Whiterun's guards) is told apart from the party, with their own kills. Fixes for quest NPCs fighting beside you, crossfire from allies, auras, witnesses who did nothing, and names of cleaned-up bodies.",
   "min_skyrimnet_version": "0.25.0"
 }

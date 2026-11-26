@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(BattleSummaries VERSION 1.6.0 LANGUAGES CXX)  # the mod's version: the DLL reports it, the SkyrimNet manifest repeats it
+project(BattleSummaries VERSION 1.6.1 LANGUAGES CXX)  # the mod's version: the DLL reports it, the SkyrimNet manifest repeats it
 # a pre-release label ("beta-3") after the version, or empty for a release: package.sh and the manifests say "1.6.0-beta-1"
 set(BSM_VERSION_LABEL "")
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.1
+
+**Improvements**
+- Enemies and witnesses who never saw you no longer learn your name from the summary: they hear of "an unseen attacker".
+- NPCs who spotted you halfway through the fight know who made the kills they saw, but not the ones before.
+- Your party still knows who did what, and gets the credit for kills made without being seen (stealth archers still get credit).
+
 ## 1.6.0
 
 **Allies**
