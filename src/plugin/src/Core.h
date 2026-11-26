@@ -194,7 +194,7 @@ namespace BSM
 		// summary. Off (the offline tests unless they turn it on): everyone saw everyone.
 		bool        trackSight{ false };
 		// one of the player's side -> who has detected them, and when first. By the time: a witness who saw the player only
-		// after a kill is not told who made it (Librum, the Sleeping Giant: Sven killed unseen, the inn told it was the
+		// after a kill is not told who made it (the Sleeping Giant: Sven killed unseen, the inn told it was the
 		// player because they saw them in the fight that followed).
 		std::map<ActorId, std::map<ActorId, double>> seenBy;
 

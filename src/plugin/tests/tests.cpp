@@ -1289,7 +1289,7 @@ namespace
 		const auto seenAll = SummaryText(BuildSummary(b, kSearcher, "Bandit Outlaw", {}));
 		Check(!Has(seenAll, "Nobody saw") && !Has(seenAll, "unseen"), "one who saw them all along: nothing hidden, no unseen count", seenAll);
 
-		// Librum, the Sleeping Giant: Sven killed unseen; the inn turned on the player, saw them, and Hjoromir was killed in
+		// The Sleeping Giant: Sven killed unseen; the inn turned on the player, saw them, and Hjoromir was killed in
 		// plain view. The inn knows who killed Hjoromir, not who killed Sven; the player's own account has both.
 		constexpr ActorId kSven = 0xFF000E60, kHjoromir = 0xFF000E61, kOrgnar = 0xFF000E62;
 		Battle inn;
